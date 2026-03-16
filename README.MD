@@ -9,3 +9,7 @@ A Reverse Polish Notation calculator that runs in the command line and has a nic
 ## Pingen
 
 A simple python script that can generate a random PIN. Requires Python 3.
+
+## MonoIMG
+
+A small GUI app that allows you to convert images to monochrome resized versions suitable for really old PC's while making use of Pillow's excellent dithering algorithm. Requires python3, tkinter and pillow.
