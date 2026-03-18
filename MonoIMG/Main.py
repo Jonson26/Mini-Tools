@@ -30,7 +30,7 @@ def open_img():
     
     # set the image as img 
     panel.image = img2
-    panel.grid(row = 2)
+    panel.grid(row = 2, column = 1, columnspan = 24)
     
 def openfilename():
     # open file dialog box to select image
