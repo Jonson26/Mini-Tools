@@ -1,0 +1,510 @@
+picotron cartridge // www.picotron.net
+version 2
+
+:: .info.pod
+b64$LS1bW3BvZCxhdXRob3I9IkZpbGlwIEphbXJvZ2EgKEFLQSBKb25zb24yNikiLGNyZWF0ZWQ9
+IjIwMjUtMDctMTkgMTM6MzI6MzUiLGljb249dXNlcmRhdGEoInU4IiwxNiwxNiwiMDAwMDAwMDAw
+MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDAwMDAwMDAw
+MGQwNjA2MDYwNjA2MDYwNjA2MDYwNjA2MGQwMDAwMGQwNjA2MDYwNjA2MDYwNjA2MDYwNjA2MDYw
+NjBkMDAwZDA2MDYwNjA2MDYwNjA2MDYwNjA2MDYwNjA2MGQwMTA3MDcwNzA2MDcwNjA2MDYwNzA3
+MDcwNjA3MDcwNzAxMGQwNjA3MDYwNzA2MDcwNjA3MDYwNzA2MDcwNjA3MDEwNzA3MDcwNjA3MDcw
+NzA2MDcwNjA3MDYwNzA3MDcwMTA3MDYwNjA2MDYwNjA3MDYwNzA2MDcwNjA3MDYwNzAxMDcwNzA3
+MDYwNjA2MDcwNjA3MDcwNzA2MDcwNzA3MDEwZDA2MDYwNjA2MDYwNjA2MDYwNjA2MDYwNjA2MGQw
+MTBkMDYwNjA2MDYwNjA2MDYwNjA2MDYwNjA2MDYwZDAxMDAwZDA2MDYwNjA2MDYwNjA2MDYwNjA2
+MDYwZDAxMDEwMDAwMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDAxMDEwMDAwMDAwMDAxMDEwMTAxMDEw
+MTAxMDEwMTAxMDEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiKSxsb3djb2xf
+aWNvbj10cnVlLG1vZGlmaWVkPSIyMDI1LTEwLTI0IDEwOjE2OjI3Iixub3Rlcz0iVGhlIHNhbWUg
+b2xkIDIwNDggeW91IGtub3cgYW5kXG5sb3ZlISIscnVudGltZT0yMSx0aXRsZT0iMjA0OCIsdmVy
+c2lvbj0iMS4zIix3b3Jrc3BhY2VzPXt7bG9jYXRpb249Im1haW4ubHVhIzIwIix3b3Jrc3BhY2Vf
+aW5kZXg9MX0se2xvY2F0aW9uPSJsaWIubHVhIzU3Iix3b3Jrc3BhY2VfaW5kZXg9MX0se2xvY2F0
+aW9uPSJnZngvMC5nZngiLHdvcmtzcGFjZV9pbmRleD0yfSx7bG9jYXRpb249Im1hcC8wLm1hcCIs
+d29ya3NwYWNlX2luZGV4PTN9LHtsb2NhdGlvbj0ic2Z4LzAuc2Z4Iix3b3Jrc3BhY2VfaW5kZXg9
+NH19XV0=
+:: gfx/
+:: gfx/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE5IDEzOjMyOjM1Iixtb2RpZmllZD0iMjAyNS0x
+MC0yNCAxMDoxNjoxNyJdXQ==
+:: gfx/0.gfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTAxLTE3IDEwOjM1OjQ4Iixtb2RpZmllZD0iMjAyNS0w
+OS0wMiAxMTowOTo1NSIscmV2aXNpb249Nl1dbHo0AJ4AAABMMQAA8yF7WzBdPXtibXA9cHh1AEMg
+EBAE8FYHEAfAF9AXwAcQB-BWLGZsYWdzPTAscGFuX3gIAMt5PTAsem9vbT04fSw_AP8EMAcPDwoJ
+Dx8PGQgPGA8eDxAMQBIAEU_vF-B1awAdH-AxAP--------------------------------------
+-------------------------6ZQbT04fX0=
+:: label.qoi
+b64$cW9pZgAAAeAAAAEOBAH_--Ho-f39-f39-f39-f39-f393v7Cw8ffPzvfPzvfPzvfP-39-f39
+4TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP8L_AAAAwD-gNT-9-f399jvfPzvfPzvfPzvf
+P8E1P8A1P941wD-9-f399jvfPzvfPzvfPzvfP8E1P8M1wT-ANcA-wDU-NcA-wDXAP8o1PzU--f39
+-fY73z873z873z873z-CNcA-wDU-wjU-wDU-NcA-wTU-wDU-wDU-xjU-NT-9-f399jvfPzvfPzvf
+PzvfP8Q1PzU-wjU-wDU-NT-CNcI-yTXCP-39-f31O98-O98-O98-O98-wTU-wDU-NT-CNT-ANT81
+P8I1P8M1P8g1P-39-f32O98-O98-O98-O98-wjXAP8E1wT-ANcA-wDU-wzXBP8s1P-39-f32O98-
+O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-
+O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-
+O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98-
+-f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39
+-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3h
+O98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-
+O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-O98-O98--f39-f3hO98-O98-
+O98-O98--f39-f3hO98-O98-O98-O98--f39-f39-f39-f39-dE73z873z873z873z-9-f39-eE7
+3z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z87
+3z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z87
+3z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z87
+3z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9
+-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39
+-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE7
+3z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z87
+3z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z87
+3z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z87
+3z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9-f39-eE73z873z873z873z-9
+-f39-f39-f39-f390TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvf
+PzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvf
+P-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39
+-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f39
+4TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394Tvf
+PzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvf
+PzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvf
+PzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvf
+P-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39
+-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f39
+4TvfPzvfPzvfPzvfP-39-f394TvfPzvfPzvfPzvfP-39-f39-f39-f39-f3RO98-O98-Nd8-O98-
+-f39-f3hO98-O98-Nf7-zKrdNT873z-9-f39-eE73z873z81FME1FNk1PzvfP-39-f394TvfPzvf
+PzUUwDXAFNk1PzvfP-39-f394TvfPzvfPzUUNRQ1FNk1PzvfP-39-f394TvfPzvfPzUUNRQ1FNk1
+PzvfP-39-f394TvfPzvfPzUUNcIU2DU-O98--f39-f3hO98-O98-NRTBNRTZNT873z-9-f39-eE7
+3z873z81FME1FNk1PzvfP-39-f394TvfPzvfPzUU3TU-O98--f39-f3hO98-O98-NRTdNT873z-9
+-f39-eE73z873z81FN01PzvfP-39-f394TvfPzvfPzUU3TU-O98--f39-f3hO98-O98-NRTdNT87
+3z-9-f39-eE73z873z81FN01PzvfP-39-f394TvfPzvfPzUU3TU-O98--f39-f3hO98-O98-NRTd
+NT873z-9-f39-eE73z873z81FN01PzvfP-39-f394TvfPzvfPzUU3TU-O98--f39-f3hO98-O98-
+NRTdNT873z-9-f39-eE73z873z81FN01PzvfP-39-f394TvfPzvfPzUU3TU-O98--f39-f3hO98-
+O98-NRTdNT873z-9-f39-eE73z873z81FN01PzvfP-39-f394TvfPzvfPzUU3TU-O98--f39-f3h
+O98-O98-NRTdNT873z-9-f39-eE73z873z81FN01PzvfP-39-f394TvfPzvfPzUU3TU-O98--f39
+-f3hO98-O98-NRTdNT873z-9-f39-eE73z873z81FN01PzvfP-39-f394TvfPzvfPzUU3TU-O98-
+-f39-f3hO98-O98-NRTdNT873z-9-f39-eE73z873z813z873z-9-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-ev_HStTP-39
+-f39-f3qKD8oP-39-f39-f3pKD-AKD-9-f39-f396Cg-wSg--f39-f39-ecoP8IoP-39-f39-f3m
+KD-AKMA--f39-f39-egowD8oP-39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f36AAAAAAAAAAE=
+:: lib.lua
+--[[pod_format="raw",created="2025-08-07 12:52:46",modified="2025-10-24 10:15:31",revision=27,xstickers={}]]
+function initGame()
+	colors = {
+		[0] = 6,
+		[2] = 7,
+		[4] = 15,
+		[8] = 10,
+		[16] = 9,
+		[32] = 31,
+		[64] = 25,
+		[128] = 8,
+		[256] = 24,
+		[512] = 30,
+		[1024] = 16,
+		[2048] = 12,
+	}
+	
+	values = {0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048}
+	
+	board = {
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0},
+		{}
+	}
+	board[0] = {}
+	
+	addRandomtile()
+	calcScore()
+	
+	game_over = false
+end
+
+function drawCell(x, y, size, offset, value)
+	x=x-1
+	y=y-1
+	if inTable(values, value) then
+		c = colors[value]
+	else
+		c = 23
+	end
+	rectfill(
+		offset+x*(size+offset),
+		offset+y*(size+offset),
+		size+offset+x*(size+offset),
+		size+offset+y*(size+offset),
+		c
+		)
+	if value>0 then
+		rect(
+			offset+x*(size+offset),
+			offset+y*(size+offset),
+			size+offset+x*(size+offset),
+			size+offset+y*(size+offset),
+			0
+			)
+		l = numWidth(value)+3
+		l_offset = flr(max(0, (size-l)/2))
+		h_offset = flr((size-11)/2)
+		print(
+			value,
+			offset*2+x*(size+offset)+l_offset,
+			offset*2+y*(size+offset)+h_offset
+			)
+	end
+end
+
+function moveLeft()
+	changes = 1
+	updates = 0
+	while changes>0 do
+		changes = 0
+		for x=1,4,1 do
+			for y=1,4,1 do
+				if board[x][y]>0 then
+					if board[x-1][y]==0 then
+						board[x-1][y] = board[x][y]
+						board[x][y] = 0
+						changes += 1
+						updates += 1
+					end
+				end
+			end
+		end
+	end
+	return updates
+end
+
+function mergeLeft()
+	updates = 0
+	for x=1,4,1 do
+		for y=1,4,1 do
+			if board[x][y]>0 then
+				if board[x-1][y]==board[x][y] then
+					board[x-1][y] = board[x][y]*2
+					board[x][y] = 0
+					updates += 1
+				end
+			end
+		end
+	end
+	return updates
+end
+
+function moveRight()
+	changes = 1
+	updates = 0
+	while changes>0 do
+		changes = 0
+		for x=1,4,1 do
+			for y=1,4,1 do
+				if board[x][y]>0 then
+					if board[x+1][y]==0 then
+						board[x+1][y] = board[x][y]
+						board[x][y] = 0
+						changes += 1
+						updates += 1
+					end
+				end
+			end
+		end
+	end
+	return updates
+end
+
+function mergeRight()
+	updates = 0
+	for x=4,1,-1 do
+		for y=1,4,1 do
+			if board[x][y]>0 then
+				if board[x+1][y]==board[x][y] then
+					board[x+1][y] = board[x][y]*2
+					board[x][y] = 0
+					updates += 1
+				end
+			end
+		end
+	end
+	return updates
+end
+
+function moveUp()
+	changes = 1
+	updates = 0
+	while changes>0 do
+		changes = 0
+		for x=1,4,1 do
+			for y=1,4,1 do
+				if board[x][y]>0 then
+					if board[x][y-1]==0 then
+						board[x][y-1] = board[x][y]
+						board[x][y] = 0
+						changes += 1
+						updates += 1
+					end
+				end
+			end
+		end
+	end
+	return updates
+end
+
+function mergeUp()
+	updates = 0
+	for x=1,4,1 do
+		for y=1,4,1 do
+			if board[x][y]>0 then
+				if board[x][y-1]==board[x][y] then
+					board[x][y-1] = board[x][y]*2
+					board[x][y] = 0
+					updates += 1
+				end
+			end
+		end
+	end
+	return updates
+end
+
+function moveDown()
+	changes = 1
+	updates = 0
+	while changes>0 do
+		changes = 0
+		for x=1,4,1 do
+			for y=1,4,1 do
+				if board[x][y]>0 then
+					if board[x][y+1]==0 then
+						board[x][y+1] = board[x][y]
+						board[x][y] = 0
+						changes += 1
+						updates += 1
+					end
+				end
+			end
+		end
+	end
+	return updates
+end
+
+function mergeDown()
+	updates = 0
+	for x=1,4,1 do
+		for y=4,1,-1 do
+			if board[x][y]>0 then
+				if board[x][y+1]==board[x][y] then
+					board[x][y+1] = board[x][y]*2
+					board[x][y] = 0
+					updates += 1
+				end
+			end
+		end
+	end
+	return updates
+end
+
+function addRandomtile()
+	value = flr(2^rndInt(1, 2))
+	free = 0
+	for x=1,4,1 do
+		for y=1,4,1 do
+			if board[x][y]==0 then
+				free += 1
+			end
+		end
+	end
+	i = 0
+	target = rndInt(1, free)
+	for x=1,4,1 do
+		for y=1,4,1 do
+			if board[x][y]==0 then
+				i += 1
+				if i==target then
+					board[x][y] = value
+				end
+			end
+		end
+	end
+end
+
+function calcScore()
+	score = 0
+	for x=1,4,1 do
+		for y=1,4,1 do
+			score += board[x][y]
+		end
+	end
+end
+
+function checkGame()
+-- Check if there are any doable moves
+-- 1: check for free spaces
+	free = 0
+	for x=1,4,1 do
+		for y=1,4,1 do
+			if board[x][y]==0 then
+				free += 1
+			end
+		end
+	end
+	if free > 0 then
+		return false
+	end
+-- 2: ceck for possible merges
+	merges = 0
+-- 2.1: left
+	for x=1,4,1 do
+		for y=1,4,1 do
+			if board[x][y]>0 then
+				if board[x-1][y]==board[x][y] then
+					merges += 1
+				end
+			end
+		end
+	end
+-- 2.2: right
+	for x=4,1,-1 do
+		for y=1,4,1 do
+			if board[x][y]>0 then
+				if board[x+1][y]==board[x][y] then
+					merges += 1
+				end
+			end
+		end
+	end
+-- 2.3: up
+	for x=1,4,1 do
+		for y=1,4,1 do
+			if board[x][y]>0 then
+				if board[x][y-1]==board[x][y] then
+					merges += 1
+				end
+			end
+		end
+	end
+-- 2.4: down
+	for x=1,4,1 do
+		for y=4,1,-1 do
+			if board[x][y]>0 then
+				if board[x][y+1]==board[x][y] then
+					merges += 1
+				end
+			end
+		end
+	end
+	if merges>0 then
+		return false
+	end
+	return true
+end
+
+function rndInt(a, b)
+	return flr(a + rnd()*b)
+end
+
+function inTable(tbl, item)
+    for key, value in pairs(tbl) do
+        if value == item then return key end
+    end
+    return false
+end
+
+function numWidth(n)
+	l = #tostring(n)
+	return l*4+(l-1)
+end
+:: main.lua
+--[[pod_format="raw",created="2025-07-30 12:41:04",modified="2025-10-24 09:37:53",revision=94,xstickers={}]]
+--[[
+2048 Game Implementation
+(c)2025 Filip Jamroga
+]]--
+
+include("lib.lua")
+
+function _init()menuitem {
+		id = 3,
+		label = "New Game",
+		shortcut = "CTRL-N",
+		action = function()
+			create_process("main.lua")
+			exit()
+		end
+	}
+	
+	initGame()
+	
+	window(200, 140, {title = "2048", resizeable = false})
+end
+
+function _update()
+	updates = 0
+	if     btnp(0) then --move left
+		updates += moveLeft()
+		updates += mergeLeft()
+		updates += moveLeft()
+	elseif btnp(1) then --move right
+		updates += moveRight()
+		updates += mergeRight()
+		updates += moveRight()
+	elseif btnp(2) then --move up
+		updates += moveUp()
+		updates += mergeUp()
+		updates += moveUp()
+	elseif btnp(3) then --move down
+		updates += moveDown()
+		updates += mergeDown()
+		updates += moveDown()
+	end
+	if updates>0 then
+		addRandomtile()
+		calcScore()
+		if checkGame() then
+			game_over = true
+		end
+	end
+end
+
+function _draw()
+	cls(7)
+	for x=1,4,1 do
+		for y=1,4,1 do
+			drawCell(x, y, 32, 2, board[x][y])
+		end
+	end
+	print("Score: "..tostring(score), 140, 4, 0)
+	if game_over then
+		print("GAME OVER", 140, 14, 0)
+	end
+end
+:: map/
+:: map/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE5IDEzOjMyOjM1Iixtb2RpZmllZD0iMjAyNS0x
+MC0yNCAxMDoxNjoxNyJdXQ==
+:: map/0.map
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTAxLTE3IDEwOjM1OjQ4Iixtb2RpZmllZD0iMjAyNS0w
+Ny0zMCAxMjo0ODo0MCIscmV2aXNpb249Ml1dbHo0AGgAAABYEAAA8Ah7e2JtcD11c2VyZGF0YSgi
+aTE2IiwzMgMALyIwAQD--------------------78QgiKSxoaWRkZW49ZmFsc2UscGFuX3g9MAgA
+0nk9MCx0aWxlX2g9MTYKABB3CgCAem9vbT0xfX0=
+:: sfx/
+:: sfx/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE5IDEzOjMyOjM1Iixtb2RpZmllZD0iMjAyNS0x
+MC0yNCAxMDoxNjoxNyJdXQ==
+:: sfx/0.sfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTAxLTE3IDEwOjM1OjQ5Iixtb2RpZmllZD0iMjAyNS0w
+MS0xNyAxMDozNzo0NCIscmV2aXNpb249Ml1dbHo0AKAAAAALCgAA-zBweHUAAygAAAQABA9AEAIO
+AAGgASACoA4ADxAADfDKAQIDQA8PkAQFBgdADJAICQoLQAyQDwwPDQ8ODEAM8P8BAOv-J6oBEAYP
+IBABIAEgAfAAAhACDhABIA8hIAEwD0Dwww8oD--wxg-4Cg--D4AP9w8NAfAJARAGDjAA------_9
+H-8BAKzPyA9AAA8QQP--sPD-AQD-6lD-----KQ==
+:: [eoc]

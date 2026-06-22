@@ -1,0 +1,1890 @@
+picotron cartridge // www.picotron.net
+version 2
+
+:: gfx/
+:: map/
+:: sfx/
+:: changelog.txt
+--[[pod_format="raw",created="2025-11-25 12:52:15",modified="2025-11-26 11:01:32",revision=4,xstickers={}]]
+Changelog
+=========
+
+Shield Patch 1
+-Fixed bug that made shields do absolutely nothing
+
+ImPogue V1
+-Added tiled graphics
+-Reworked shields to make the game more challenging
+-stop stairs from generating on floor 10
+
+-TODO: switching between pseudo-ascii & tiled graphics
+-TODO: better music
+-TODO: better level generation
+-TODO: inventory graphics
+:: door.lua
+--[[pod_format="raw",created="2024-04-05 19:38:20",modified="2024-09-25 19:32:19",revision=852]]
+function create_door(id, hall_id, pos)
+	local door = {}
+	door.id = id
+	door.hall_id = hall_id
+	door.pos = pos
+	door.open = false
+	
+	function door:draw()
+		local tile = create_tile(self.pos.x, self.pos.y, 7, tile_type_enum.door, false)
+		tile.door_id = self.id
+		if self.open then
+			tile.sprite = 6
+			tile.walkable = true
+		end
+		state.output_tiles[self.pos.y][self.pos.x] = tile
+	end
+	
+	return door
+end
+
+function gen_doors()
+	for i, v in pairs(state.halls) do
+		add(state.doors, create_door(#state.doors + 1, i, v.points[0]))
+		add(state.doors, create_door(#state.doors + 1, i, v.points[#v.points]))
+	end
+end
+:: enemy.lua
+--[[pod_format="raw",created="2024-04-06 15:47:02",modified="2025-11-25 12:48:55",revision=3039,xstickers={}]]
+function create_enemy(id, pos, name, sprite, hp, dmg, xp)
+	local enemy = {}
+	enemy.id = id
+	enemy.pos = pos
+	enemy.name = name
+	enemy.sprite = sprite
+	enemy.hp = hp
+	enemy.dmg = dmg
+	enemy.xp = xp
+	enemy.alive = true
+	if rnd(state.floor / 2) > .2 then
+		enemy.state = enemy_state_enum.roaming
+	else
+		enemy.state = enemy_state_enum.asleep
+	end
+	
+	function enemy:update()
+		if self.state == enemy_state_enum.hostile then
+			if state.player.pos:distance_to(self.pos):magn() > 1 then
+				self:move()
+			elseif state.player.pos:distance_to(self.pos):magn() > 15 then
+				self.state = enemy_state_enum.roaming
+			else
+				self:attack()
+			end
+		elseif self.state == enemy_state_enum.roaming then
+			if state.player:can_see(self.pos) and 
+				state.player.pos:distance_to(self.pos):magn() < 15 then
+				self.state = enemy_state_enum.hostile
+				if state.player.pos:distance_to(self.pos):magn() > 1 then
+					self:move()
+				elseif state.player.pos:distance_to(self.pos):magn() > 15 then
+					self.state = enemy_state_enum.roaming
+				else
+					self:attack()
+				end
+			else
+				self:roam()
+			end
+		end
+	end
+	
+	function enemy:draw()
+		if self.alive then
+			local tile = create_tile(
+				self.pos.x, 
+				self.pos.y, 
+				self.sprite, 
+				tile_type_enum.enemy, 
+				true)
+			if self.state == enemy_state_enum.asleep then
+				tile.sprite = tile.sprite + 18
+			end
+			tile.enemy_id = self.id
+			tile.seen = state.output_tiles[self.pos.y][self.pos.x].seen
+			state.output_tiles[self.pos.y][self.pos.x] = tile
+		end
+	end
+	
+	function enemy:move()
+		local close_pos = self.pos
+		local target = state.player.pos
+		local min_dist = close_pos:distance_to(target):magn()
+		for i=-1, 1 do
+			local tile1 = state.output_tiles[self.pos.y][self.pos.x + i]
+			local tile2 = state.output_tiles[self.pos.y + i][self.pos.x]
+			local dist1_mag = tile1.pos:distance_to(target):magn()
+			local dist2_mag = tile2.pos:distance_to(target):magn()
+			local enemy_in_pos1 = nil
+			local enemy_in_pos2 = nil
+			for _, v in pairs(state.enemies) do
+				if v.pos.x == tile1.pos.x and v.pos.y == tile1.pos.y and v.id ~= self.id then
+					enemy_in_pos1 = true
+					break
+				end
+				if v.pos.x == tile2.pos.x and v.pos.y == tile2.pos.y and v.id ~= self.id then
+					enemy_in_pos2 = true
+					break
+				end
+			end
+			if dist1_mag < min_dist and tile1.walkable and not enemy_in_pos1 then
+				close_pos = tile1.pos
+				min_dist = dist1_mag
+			end
+			if dist2_mag < min_dist and tile2.walkable and not enemy_in_pos2 then
+				close_pos = tile2.pos
+				min_dist = dist2_mag
+			end
+		end
+		self.pos = close_pos
+	end
+	
+	function enemy:roam()
+		local tiles = {}
+		for i in all({-1, 1}) do
+			local tile1 = state.output_tiles[self.pos.y][self.pos.x + i]
+			local tile2 = state.output_tiles[self.pos.y + i][self.pos.x]
+			local enemy_in_pos1 = nil
+			local enemy_in_pos2 = nil
+			for _, v in pairs(state.enemies) do
+				if v.pos.x == tile1.pos.x and v.pos.y == tile1.pos.y and v.id ~= self.id then
+					enemy_in_pos1 = true
+					break
+				end
+				if v.pos.x == tile2.pos.x and v.pos.y == tile2.pos.y and v.id ~= self.id then
+					enemy_in_pos2 = true
+					break
+				end
+			end
+			if (tile1.walkable or tile1.door_id) and 
+				not enemy_in_pos1 then
+				add(tiles, tile1)
+			end
+			if (tile2.walkable or tile2.door_id) and 
+				not enemy_in_pos2 then
+				add(tiles, tile2)
+			end
+		end
+		local tile = tiles[rnd_int(1, #tiles + 1)]
+		if tile.door_id and not state.doors[tile.door_id].open then
+			state.doors[tile.door_id].open = true
+		else
+			self.pos = tile.pos
+		end
+	end
+	
+	function enemy:attack()
+		local dmg = self.dmg
+		if state.player.armor then
+			--dmg -= state.player.armor.func
+			if sub(state.player.armor.name, -1) == "*" then
+				dmg /= 2
+			end
+			if rnd_int(1,11)<state.player.armor.func then
+				dmg /= 2
+			end
+			dmg = ceil(dmg)
+		end
+		if dmg<0 then dmg=0 end
+		state.player.hp -= dmg
+		add(state.logline, "Attacked Player for " .. dmg)
+		if state.player.hp <= 0 then
+			state.mode = mode_enum.game_end
+		end
+	end
+	
+	return enemy
+end
+
+function create_goblin(id, pos)
+	local gob = create_enemy(id, pos, "Goblin", 3, 14, 6, 12)
+	return gob
+end
+
+function create_orc(id, pos)
+	local orc = create_enemy(id, pos, "Orc", 11, 20, 8, 23)
+	return orc
+end
+
+function create_kobold(id, pos)
+	local kob = create_enemy(id, pos, "Kobold", 24, 10, 4, 8)
+	return kob
+end
+
+function create_lich(id, pos)
+	local lich = create_enemy(id, pos, "Lich", 25, 80, 12, 800)
+	lich.state = enemy_state_enum.roaming
+	return lich
+end
+
+function gen_enemies()
+	state.enemies = {}
+	if state.floor == 10 then
+		add(state.enemies, create_lich(1, get_enemy_spawn()))
+		state.enemies[1]:draw()
+		return
+	end
+	local enemy_num = rnd_int(6, 7 + state.floor)
+	for i=1, enemy_num do
+		local enemy
+		local choice = rnd(1)
+		if choice > state.floor / 10 then
+			enemy = create_kobold
+		elseif choice > state.floor / 20 then
+			enemy = create_goblin
+		else
+			enemy = create_orc
+		end
+		add(state.enemies, enemy(i, get_enemy_spawn()))
+		state.enemies[i]:draw()
+	end
+end
+
+function get_enemy_spawn()
+	local spawn_x, spawn_y, tile
+	repeat
+		local room_ind = flr(rnd(#state.rooms))
+		local room = state.rooms[room_ind]
+		spawn_x = rnd_int(room.top_left.x + 1, room.bot_right.x - 1)
+		spawn_y = rnd_int(room.top_left.y + 1, room.bot_right.y - 1)
+		tile = state.output_tiles[spawn_y][spawn_x]
+	until tile.walkable and
+		(math.abs(spawn_x - state.player.pos.x) +
+		math.abs(spawn_y - state.player.pos.y) > 1)
+	return create_pos(spawn_x, spawn_y)
+end
+
+enemy_state_enum = {
+	hostile = 1,
+	asleep = 2,
+	roaming = 3
+}
+:: equipment.lua
+--[[pod_format="raw",created="2024-04-13 13:47:01",modified="2025-01-27 15:51:35",revision=377]]
+equip_type_enum = {
+	Copper = {"Copper", 1},
+	Bronze = {"Bronze", 2},
+	Iron = {"Iron", 3},
+	Steel = {"Steel", 4},
+	Adamantite = {"Adamantite", 5}
+}
+
+function create_equipment(index, item_type)
+	local quality = equip_type_enum.Copper
+	local choice = rnd(5)
+	
+	if state.floor < 3 then
+		if choice > 4 then
+			quality = equip_type_enum.Iron
+		elseif choice > 3 then
+			quality = equip_type_enum.Bronze
+		end
+	elseif state.floor > 8 then
+		if choice > 4 then
+			quality = equip_type_enum.Iron
+		elseif choice > 3 then
+			quality = equip_type_enum.Steel
+		else
+			quality = equip_type_enum.Adamantite
+		end
+	else
+		if choice > 3.4 then
+			quality = equip_type_enum.Steel
+		elseif choice > 1.7 then
+			quality = equip_type_enum.Iron
+		else
+			quality = equip_type_enum.Bronze
+		end
+	end
+	
+	local name = " Shield"
+	local sprite = 9
+	if item_type == item_type_enum.sword then
+		name = " Sword"
+		sprite = 12
+	end
+	
+	return create_item(
+				index, 
+				get_item_spawn(), 
+				item_type, 
+				quality[2], 
+				quality[1] .. name,
+				sprite)
+end
+			
+:: hall.lua
+--[[pod_format="raw",created="2024-04-05 17:57:18",modified="2025-11-26 10:35:14",revision=1873,xstickers={}]]
+function create_hall(room1_id, room2_id, dir)
+	local room1 = state.rooms[room1_id]
+	local room2 = state.rooms[room2_id]
+	
+	local room1_center = create_pos((room1.top_left.x + room1.bot_right.x) / 2, 
+		(room1.top_left.y + room1.bot_right.y) / 2)
+	local room2_center = create_pos((room2.top_left.x + room2.bot_right.x) / 2, 
+		(room2.top_left.y + room2.bot_right.y) / 2)
+		
+	local dist_vector = room1_center:vector_to(room2_center)
+	
+	local hall = {}
+	hall.room1_id = room1_id
+	hall.room2_id = room2_id
+	hall.points = {}
+	
+	local start_point
+	local second_point
+	local end_point
+	local penult_point
+	
+	if dir.x == -1 then
+		start_point = create_pos(room1.top_left.x - 1, rnd_int(room1.top_left.y + 1, room1.bot_right.y - 1))
+		second_point = create_pos(start_point.x - 1, start_point.y)
+		
+		end_point = create_pos(room2.bot_right.x + 1, rnd_int(room2.top_left.y + 1, room2.bot_right.y - 1))
+		penult_point = create_pos(end_point.x + 1, end_point.y)
+	elseif dir.x == 1 then
+		start_point = create_pos(room1.bot_right.x + 1, rnd_int(room1.top_left.y + 1, room1.bot_right.y - 1))
+		second_point = create_pos(start_point.x + 1, start_point.y)
+		
+		end_point = create_pos(room2.top_left.x - 1, rnd_int(room2.top_left.y + 1, room2.bot_right.y - 1))
+		penult_point = create_pos(end_point.x - 1, end_point.y)
+	elseif dir.y == 1 then
+		start_point = create_pos(rnd_int(room1.top_left.x + 1, room1.bot_right.x - 1), room1.bot_right.y + 1)
+		second_point = create_pos(start_point.x, start_point.y + 1)
+		
+		end_point = create_pos(rnd_int(room2.top_left.x + 1, room2.bot_right.x - 1), room2.top_left.y - 1)
+		penult_point = create_pos(end_point.x, end_point.y - 1)
+	elseif dir.y == -1 then
+		start_point = create_pos(rnd_int(room1.top_left.x + 1, room1.bot_right.x - 1), room1.top_left.y - 1)
+		second_point = create_pos(start_point.x, start_point.y - 1)
+		
+		end_point = create_pos(rnd_int(room2.top_left.x + 1, room2.bot_right.x - 1), room2.bot_right.y + 1)
+		penult_point = create_pos(end_point.x, end_point.y + 1)
+	end
+	
+	hall.points[0] = start_point
+	hall.points[1] = second_point
+	
+	local vec_left = second_point:vector_to(penult_point)
+	local dist_left = second_point:distance_to(penult_point)
+	local x_dir = -1 * vec_left.x / dist_left.x
+	local y_dir = -1 * vec_left.y / dist_left.y
+	
+	while dist_left.x + dist_left.y > 1 do
+		local last_pnt = hall.points[#hall.points]
+		if (flr(rnd(1)) > 0 or dist_left.y == 0) and dist_left.x > 0 then
+			add(hall.points, create_pos(last_pnt.x + x_dir, last_pnt.y))
+			dist_left.x -= 1
+		else
+			add(hall.points, create_pos(last_pnt.x, last_pnt.y + y_dir))
+			dist_left.y -= 1
+		end
+	end
+	
+	add(hall.points, penult_point)
+	add(hall.points, end_point)
+	
+	function hall:is_inside(pos)
+		for v in all(self.points) do
+			if v.x == pos.x and v.y == pos.y then
+				return true
+			end
+		end
+		return false
+	end
+	
+	function hall:draw()
+		for i, v in pairs(hall.points) do
+			local tile = create_tile(v.x, v.y, 255, tile_type_enum.floor, true)
+			local visible = v:distance_to(state.player.pos):magn() <= 2 and 
+				hall:is_inside(state.player.pos)
+			tile.hall_id = i
+			if visible then
+				tile.sprite = 1
+				tile.seen = true
+				state.tiles[v.y][v.x].seen = true
+			end
+			state.output_tiles[v.y][v.x] = tile
+		end
+	end
+	return hall
+end
+
+function gen_halls()
+	for i=1, #state.rooms do
+		local dir 
+		if i == 1 or i == 2 or i == 8 then
+			dir = create_pos(0, -1)
+		elseif i == 3 or i == 4 then
+			dir = create_pos(-1, 0)
+		elseif i == 5 or i == 6 then
+			dir = create_pos(0, 1)
+		elseif i == 7 then
+			dir = create_pos(1, 0)
+		end
+		
+		add(state.halls, create_hall(i, i - 1, dir))
+	end
+		
+	add(state.halls, create_hall(8, 3, create_pos(0, 1)))
+	add(state.halls, create_hall(8, 1, create_pos(-1, 0)))
+	add(state.halls, create_hall(8, 5, create_pos(1, 0)))
+	add(state.halls, create_hall(7, 0, create_pos(-1, 0)))
+end
+			
+:: input.lua
+--[[pod_format="raw",created="2024-04-03 18:11:06",modified="2025-01-27 15:51:09",revision=4669]]
+repeat_flag = 0
+repeat_input_flag = nil
+function game_input()
+	if btnp(4) then state.player:move(0, 0)
+	elseif btnp(0) and not btn(4) then state.player:move(-1, 0)
+	elseif btnp(1) and not btn(4) then state.player:move(1, 0)
+	elseif btnp(2) and not btn(4) then state.player:move(0, -1)
+	elseif btnp(3) and not btn(4) then state.player:move(0, 1)
+	elseif btn(4) then
+		if btn(5) then
+			if repeat_flag > 2 then
+				state.player:move(0, 0)
+			end
+		elseif (btnp(0) or repeat_input_flag == 0) then
+				state.player:move(-1, 0)
+				repeat_input_flag = 0
+				if state.player:check_surroundings(create_pos(-1, 0)) then
+					repeat_input_flag = nil
+				end
+		elseif (btnp(1) or repeat_input_flag == 1) then
+				state.player:move(1, 0)
+				repeat_input_flag = 1
+				if state.player:check_surroundings(create_pos(1, 0)) then
+					repeat_input_flag = nil
+				end
+		elseif (btnp(2) or repeat_input_flag == 2) then
+				state.player:move(0, -1)
+				repeat_input_flag = 2
+				if state.player:check_surroundings(create_pos(0, -1)) then
+					repeat_input_flag = nil
+				end
+		elseif (btnp(3) or repeat_input_flag == 3) then
+				state.player:move(0, 1)
+				repeat_input_flag = 3
+				if state.player:check_surroundings(create_pos(0, 1)) then
+					repeat_input_flag = nil
+				end
+		else 
+			repeat_input_flag = nil
+		end	
+	elseif btnp(5) then 
+		sfx(4)
+		state.mode = mode_enum.inv 
+	 	state.draw = true
+	end
+	
+	repeat_flag += 1
+	if repeat_flag == 4 then
+		repeat_flag = 0
+	end
+end
+
+function inv_input()
+	if state.menu_index then
+		if btnp(2) and state.menu_index > 1 then
+			sfx(3)
+			state.menu_index -= 1
+			state.updated = true
+		elseif btnp(3) and state.menu_index < 2 then 
+			sfx(3)
+			state.menu_index += 1
+			state.updated = true
+		elseif btnp(4) then 
+			if state.menu_index == 1 then
+				state.player:use_item(state.inv_index)
+			else
+				state.player:drop_item(state.inv_index)
+			end
+			state.menu_index = nil
+		 	state.updated = true
+		elseif btnp(5) then 
+			sfx(5)
+			state.menu_index = nil
+			state.updated = true
+		end
+		return
+	end
+	if btnp(2) and state.inv_index > 1 then
+		sfx(3)
+		state.inv_index -= 1
+		state.updated = true
+	elseif btnp(3) and state.inv_index < #state.player.inv then 
+		sfx(3)
+		state.inv_index += 1
+		state.updated = true
+	elseif btnp(4) then 
+		if #state.player.inv == 0 then
+			sfx(6)
+			return
+		end
+		sfx(4)
+		state.menu_index = 1
+	 	state.updated = true
+	elseif btnp(5) then 
+		sfx(5)
+		state.mode = mode_enum.game
+		state.updated = true
+	end
+end
+
+function stair_input()
+	if btnp(2) and state.stair_index > 1 then
+		sfx(3)
+		state.stair_index -= 1
+		state.updated = true
+	elseif btnp(3) and state.stair_index < 2 then 
+		sfx(3)
+		state.stair_index += 1
+		state.updated = true
+	elseif btnp(4) then 
+		if state.stair_index == 1 then
+			sfx(4)
+			next_floor()
+		elseif state.stair_index == 2 then
+			sfx(5)
+		end
+		state.mode = mode_enum.game
+	 	state.updated = true
+	elseif btnp(5) then 
+		sfx(5)
+		state.mode = mode_enum.game
+		state.updated = true
+	end
+end
+
+function dir_input()
+	if btnp(0) then
+		sfx(4)
+		state.dir = create_pos(-1, 0)
+		state.mode = mode_enum.game
+		state.updated = true
+	elseif btnp(1) then 
+		sfx(4)
+		state.dir = create_pos(1, 0)
+		state.mode = mode_enum.game
+		state.updated = true
+	elseif btnp(2) then
+		sfx(4)
+		state.dir = create_pos(0, -1)
+		state.mode = mode_enum.game
+		state.updated = true
+	elseif btnp(3) then 
+		sfx(4)
+		state.dir = create_pos(0, 1)
+		state.mode = mode_enum.game
+		state.updated = true
+	elseif btnp(4) then 
+		sfx(6)
+	elseif btnp(5) then 
+		sfx(5)
+		state.mode = mode_enum.game
+		state.updated = true
+	end
+end
+:: item.lua
+--[[pod_format="raw",created="2024-04-06 19:33:19",modified="2025-11-25 12:37:17",revision=2698,xstickers={}]]
+function create_item(id, pos, type, func, name, sprite)
+	local item = {}
+	item.id = id
+	item.pos = pos
+	item.type = type
+	item.func = func
+	item.sprite = sprite
+	item.name = name
+	item.equipped = false
+	
+	function item:draw()
+		local tile = create_tile(
+			self.pos.x, 
+			self.pos.y, 
+			self.sprite, 
+			tile_type_enum.item, 
+			true)
+		tile.item_id = self.id
+		if not state.output_tiles[self.pos.y][self.pos.x].enemy_id then
+			tile.seen = state.output_tiles[self.pos.y][self.pos.x].seen
+			state.output_tiles[self.pos.y][self.pos.x] = tile
+		end
+	end
+	
+	return item
+end
+
+item_type_enum = {
+	potion = 1,
+	gold = 2,
+	bread = 3,
+	armor = 4,
+	sword = 5,
+	scroll = 6
+}
+
+function item_funcs(entity)
+	function entity:heal_potion()
+		local heal_val = rnd_int(4, 10)
+		self.hp += heal_val
+		if self.hp >= self.max_hp then
+			self.hp = self.max_hp
+			add(state.logline, "Healed " .. self.name .. " to full!")
+			return
+		end
+		add(state.logline, "Healed " .. self.name .. " for " .. heal_val)
+	end
+	
+	function entity:life_potion()
+		self.max_hp += 5
+		self.hp += 5
+		add(state.logline, "Health Increased")
+	end
+	
+	function entity:full_potion()
+		self.full_belly_timer = 50
+		self.belly = 100
+		add(state.logline, "Belly filled for a while")
+	end
+	
+	function entity:enchant_sword()
+		if not self.sword then
+			add(state.logline, "No Sword Equipped!")
+			return
+		end
+		if sub(self.sword.name, -1) == "*" then
+			add(state.logline, "Sword Already Enchanted!")
+			return
+		end
+		self.sword.func += 2
+		self.sword.name = self.sword.name .. " *"
+		add(state.logline, "Sword Enchanted")
+	end
+	
+	function entity:enchant_shield()
+		if not self.armor then
+			add(state.logline, "No Shield Equipped!")
+			return
+		end
+		if sub(self.armor.name, -1) == "*" then
+			add(state.logline, "Shield Already Enchanted!")
+			return
+		end
+		self.armor.func += 2
+		self.armor.name = self.armor.name .. " *"
+		add(state.logline, "Shield Enchanted")
+	end
+	
+	function entity:sleep_scroll()
+		for i, _ in pairs(state.enemies) do
+			state.enemies[i].state = enemy_state_enum.asleep
+		end
+		
+		add(state.logline, "Put all enemies to sleep!")
+	end
+	
+	function entity:eat_bread()
+		self.belly += 50
+		if self.belly > 100 then
+			self.belly = 100
+		end
+		add(state.logline, "Ate Bread")
+	end
+end
+
+function gen_items()
+	state.items = {}
+	local num_of_items = rnd_int(8, 12)
+	for i=1, num_of_items do
+		local choice = rnd(1)
+		if choice > .97 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.potion, 
+				state.player.heal_potion, 
+				"Heal Potion",
+				4))
+		elseif choice > .95 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.potion, 
+				state.player.full_potion, 
+				"Full Belly Potion",
+				17))
+		elseif choice > .92 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.potion, 
+				state.player.life_potion, 
+				"Life Potion",
+				19))
+		elseif choice > .9 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.potion, 
+				state.player.level_up, 
+				"Level Up Potion",
+				18))
+		elseif choice > .85 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.potion, 
+				state.player.enchant_shield, 
+				"Enchant Shield Scroll",
+				15))
+		elseif choice > .8 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.potion, 
+				state.player.enchant_sword, 
+				"Enchant Sword Scroll",
+				14))
+		elseif choice > .77 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.potion, 
+				state.player.sleep_scroll, 
+				"Sleep Scroll",
+				20))
+		elseif choice > .72 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.scroll, 
+				3, 
+				"Lightning Scroll",
+				13))
+		elseif choice > .58 then
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.bread, 
+				state.player.eat_bread, 
+				"Bread",
+				10))
+		elseif choice > .5 then
+			local val = 2
+			add(state.items, 
+				create_equipment(i, item_type_enum.sword))
+		elseif choice > .4 then
+			local val = 1
+			add(state.items, 
+				create_equipment(i, item_type_enum.armor))
+		else
+			local val = rnd_int(10, 25)
+			add(state.items, 
+				create_item(
+				i, 
+				get_item_spawn(), 
+				item_type_enum.gold, 
+				val, 
+				val .. " Gold",
+				5))
+		end
+		state.items[i]:draw()
+	end
+end
+		
+function get_item_spawn()
+	local room_ind = flr(rnd(#state.rooms))
+	local room = state.rooms[room_ind]
+	local spawn_x, spawn_y, tile
+	repeat
+		spawn_x = rnd_int(room.top_left.x + 1, room.bot_right.x - 1)
+		spawn_y = rnd_int(room.top_left.y + 1, room.bot_right.y - 1)
+		tile = state.output_tiles[spawn_y][spawn_x]
+	until tile.walkable and not tile.item_id and not tile.enemy_id
+	return create_pos(spawn_x, spawn_y)
+end
+	
+:: main.lua
+--[[pod_format="raw",created="2024-04-03 17:12:03",modified="2025-11-26 10:58:47",revision=5374,xstickers={}]]
+include("state.lua")
+include("tiles.lua")
+include("player.lua")
+include("input.lua")
+include("pos.lua")
+include("room.lua")
+include("util.lua")
+include("hall.lua")
+include("door.lua")
+include("enemy.lua")
+include("item.lua")
+include("stair.lua")
+include("projectile.lua")
+include("equipment.lua")
+include("minimap.lua")
+
+function _init()
+	spr_offset = 256
+	music(5)
+	blink_flag = false
+	blink_timer = 0
+	vid(1)
+	
+	state = {}
+	state.dir = nil
+	state.floor = 1
+	state.updated = false
+	state.draw = true
+	state.turn_counter = 0
+	state.mode = mode_enum.game_start
+	state.tiles = gen_tiles()
+	state.output_tiles = {}
+	state.logline = {"Welcome to Pogue!"}
+	state.sections = get_sections()
+	state.stair_index = 1
+	state.inv_index = 1
+	state.menu_index = nil
+	state.rooms = {}
+	for i, v in pairs(state.sections) do
+		state.rooms[i] = create_room(i)
+	end
+	state.halls = {}
+	gen_halls()
+	state.doors = {}
+	gen_doors()
+	state.player = create_player()
+	
+	reset_output()
+	for _, v in pairs(state.rooms) do
+		v:draw()
+	end
+	for _, v in pairs(state.halls) do
+		v:draw()
+	end
+	for _, v in pairs(state.doors) do
+		if state.player:can_see(v.pos) then
+			v:draw()
+		end
+	end
+	gen_enemies()
+	state.player:draw()
+	for _, v in pairs(state.enemies) do
+		if state.player:can_see(v.pos) then
+			v:draw()
+		end
+	end
+	gen_items()
+	for _, v in pairs(state.items) do
+		if state.player:can_see(v.pos) then
+			v:draw()
+		end
+	end
+	state.stair = create_stair()
+	state.stair:draw()
+	
+	gen_map(state.output_tiles)
+end
+
+function _update()
+	if state.mode == mode_enum.game_start then
+		if btnp(5) then 
+			sfx(7)
+			music(4)
+			state.mode = mode_enum.game
+			state.updated = true
+		end
+	elseif state.mode == mode_enum.game then
+		game_update()
+	elseif state.mode == mode_enum.inv then
+		inv_update()
+	elseif state.mode == mode_enum.stair then
+		stair_update()
+	elseif state.mode == mode_enum.dir then
+		dir_update()
+	elseif state.mode == mode_enum.game_end then	
+		if btnp(5) then
+			sfx(7)
+			music(4)
+			state.logline = {"Welcome to Pogue!"}
+			state.player = create_player()
+			state.floor = 0
+			next_floor()
+			state.mode = mode_enum.game
+			state.updated = true
+		end
+	end
+end
+
+function _draw()
+	if state.mode == mode_enum.game_start or state.mode == mode_enum.game_end then
+		if blink_timer % 30 == 0 then 
+			blink_flag = not blink_flag 
+			state.draw = true
+		end			
+	elseif state.mode == mode_enum.game and blink_timer % 20 == 0 then
+		local pos = state.player.pos
+		local sprite = 0
+		if state.output_tiles[pos.y][pos.x].sprite == sprite then
+			sprite = 16
+		end
+		state.draw = true
+		state.output_tiles[pos.y][pos.x].sprite = sprite
+	end
+	blink_timer += 1
+	if state.updated or state.draw then
+		cls()
+		if state.mode == mode_enum.game_start then
+			print("Welcome to Pogue!", 200, 75)
+			if blink_flag then print("Press \"x\" to begin!", 197, 90) end
+		elseif state.mode == mode_enum.game then
+			spr(spr_offset+56,0 ,0)
+			gen_map(state.output_tiles)
+			print(state.logline[#state.logline - 2])
+			print(state.logline[#state.logline - 1])
+			color(7)
+			print(state.logline[#state.logline])
+			color(6)
+			print("\n" .. "HP: " .. state.player.hp .. "/" .. state.player.max_hp)
+			print("Belly: " .. state.player.belly)
+			local atk_val = state.player.dmg
+			if state.player.sword then 
+				atk_val += state.player.sword.func
+			end
+			print("Attack: " .. atk_val)
+			local def_val = 0
+			if state.player.armor then 
+				def_val = state.player.armor.func
+			end
+			print("Defense: " .. def_val)
+			print("\nFloor: " .. state.floor)
+			print("Level: " .. state.player.level)
+			print("Gold: " .. state.player.gold)
+			map(state.player.pos.x - 7 + 15, state.player.pos.y - 7 + 15, 150, 50, 15, 15)
+			draw_minimap()
+		elseif state.mode == mode_enum.inv then
+			print("Inventory:", 10, 10)
+			if #state.player.inv == 0 then
+				print ("(empty)", 10, 30)
+			end
+			for i, v in pairs(state.player.inv) do
+				if i == state.inv_index then
+					color(10)
+				else
+					color(6)
+				end
+				local name = i .. ") " .. v.name
+				if v.equipped then
+					name = name .. " (E)"
+				end
+				print(name, 20, 20 + (i * 10))
+				color(6)
+			end		
+			if state.menu_index then
+				print("Do what?:", 290, 10)
+				for i, v in pairs({"Use", "Drop"}) do
+					if i == state.menu_index then
+						color(10)
+					else
+						color(6)
+					end
+					print(i .. ") " .. v, 290, 20 + (i * 10))
+					color(6)
+				end
+			end
+		elseif state.mode == mode_enum.stair then
+			print("Proceed to next floor?:", 10, 10)
+			for i, v in pairs({"Yes", "No"}) do
+				if i == state.stair_index then
+					color(10)
+				else
+					color(6)
+				end
+				print(i .. ") " .. v, 20, 20 + (i * 10))
+				color(6)
+			end
+		elseif state.mode == mode_enum.dir then
+			print("Which direction?", 10, 10)
+		elseif state.mode == mode_enum.game_end then
+			music(-1) 
+			if state.player.hp > 0 then
+				if state.updated then sfx(11, 1) end
+				print("You Win!", 225, 75)
+				print("You collected " .. state.player.gold .. " gold!", 197, 105)
+			else 
+				if state.updated then sfx(10, 1) end
+				print("You Died", 224, 75) 
+				if state.player.belly <= 0 then
+					print("You starved to death!", 197, 105)
+				else
+					print("You were killed!", 210, 105)
+				end
+				print("You collected " .. state.player.gold .. " gold!", 197, 120)
+			end
+			if blink_flag then print("Press \"x\" to play again!", 190, 90) end
+		end
+		state.updated = false
+		state.draw = false
+	end
+end
+
+function game_update()
+	if state.dir then
+		local result = fire_projectile(state.player.pos, state.dir)
+		if result then
+			state.player:attack(result)
+		else
+			sfx(13)
+			add(state.logline, "Missed!")
+		end
+		state.dir = nil
+		return
+	end
+	game_input()
+	if state.updated then
+		reset_output()
+		for _, v in pairs(state.rooms) do
+			v:draw()
+		end
+		for _, v in pairs(state.halls) do
+			v:draw()
+		end
+		for _, v in pairs(state.doors) do
+			if state.player:can_see(v.pos) then
+				v:draw()
+			end
+		end
+		state.player:draw()
+		for _, v in pairs(state.enemies) do
+			if v.alive then
+				v:update()
+				if state.player:can_see(v.pos) then
+					v:draw()
+				end
+			end
+		end
+		
+		for _, v in pairs(state.items) do
+			if state.player:can_see(v.pos) then
+				v:draw()
+			end
+		end
+		if state.stair != nil then
+			state.stair:draw()
+		end
+		state.turn_counter += 1
+	end
+end
+
+function inv_update()
+	inv_input()
+end
+
+function stair_update()
+	stair_input()
+end
+
+function dir_update()
+	dir_input()
+end
+:: minimap.lua
+--[[pod_format="raw",created="2024-04-13 16:36:20",modified="2025-03-12 14:23:45",revision=315]]
+function draw_minimap()
+	local start_x = 300
+	local start_y = 50
+	for i=0, #state.output_tiles do
+		for j=0, #state.output_tiles[i] do
+			local tile = state.tiles[i][j]
+			local out_tile = state.output_tiles[i][j]
+			local sprite = 64
+			if tile.seen then
+				if out_tile.type == tile_type_enum.player then
+					sprite = 72
+				elseif out_tile.type == tile_type_enum.enemy then
+					sprite = 66
+				elseif out_tile.type == tile_type_enum.item then
+					sprite = 65
+				elseif state.stair and i == state.stair.pos.y and j == state.stair.pos.x then
+					sprite = 67
+				end
+				spr(sprite, start_x + (j * 4), start_y + (i * 4))
+			end
+		end
+	end
+end
+:: player.lua
+--[[pod_format="raw",created="2024-04-03 17:59:58",modified="2025-01-27 15:51:00",revision=5033]]
+function create_player()
+	local player = {}
+	player.pos = get_player_spawn()
+	player.dmg = 4
+	player.hp = 30
+	player.xp = 0
+	player.level = 1
+	player.next_xp = 80
+	player.max_hp = player.hp
+	player.inv = {}
+	player.name = "Player"
+	player.gold = 0
+	player.belly = 100
+	player.armor = nil
+	player.sword = nil
+	player.full_belly_timer = 0
+	
+	function player:draw()
+		local tile = create_tile(
+			self.pos.x, 
+			self.pos.y, 
+			0, 
+			tile_type_enum.player, 
+			false)
+		tile.seen = state.tiles[self.pos.y][self.pos.x].seen
+		state.output_tiles[self.pos.y][self.pos.x] = tile
+	end
+	
+	function player:move(d_x, d_y)
+		local new_x = self.pos.x + d_x
+		local new_y = self.pos.y + d_y
+		local tile = state.output_tiles[new_y][new_x]
+		state.updated = true
+		if tile.enemy_id then
+			self:attack(tile.enemy_id)
+			sfx(1)
+		elseif tile.door_id and not state.doors[tile.door_id].open then
+			state.doors[tile.door_id].open = true
+			add(state.logline, "Door Opened")
+			sfx(1)
+		elseif tile.walkable or d_x == 0 and d_y == 0 then
+			self.pos.x = new_x
+			self.pos.y = new_y
+			sfx(1)
+		else
+			state.updated = false
+		end
+		
+		if tile.item_id then
+			self:pick_up(tile.item_id)
+		elseif tile.stair then
+			sfx(4)
+			state.mode = mode_enum.stair
+			state.stair_index = 1
+		end
+		
+		if state.turn_counter % 7 == 0 and self.hp < self.max_hp and self.belly > 0 then
+			self.hp += 1
+		end
+		
+		if state.turn_counter % 5 == 0 and self.belly > 0 then
+			if self.full_belly_timer > 0 then
+				self.full_belly_timer -= 1
+			else
+				self.belly -= 1
+			end
+			if self.belly == 50 then
+				add(state.logline, "You're getting hungry...")
+			elseif self.belly == 20 then
+				add(state.logline, "You're REALLY hungry! Eat some bread, quick!")
+			end
+		end
+		
+		if state.turn_counter % 2 == 0 and self.belly <= 0 then
+			self.hp -= 1
+			if self.hp > 0 then
+				add(state.logline, "You are starving!")
+			else
+				add(state.logline, "You starved to death :/")
+				state.mode = mode_enum.game_end
+			end
+		end
+	end
+	
+	function player:pick_up(item_id)
+		local item = state.items[item_id]
+		if #self.inv >= 15 and item.type ~= item_type_enum.gold then
+			add(state.logline, "Didn't pick up " .. item.name .. ": Inventory full")
+			return
+		end
+		sfx(4)
+		state.items[item_id] = nil
+		add(state.logline, "Picked up " .. item.name)
+		if item.type == item_type_enum.gold then
+			self.gold += item.func
+		else
+			add(self.inv, item)
+			self.inv[#self.inv].id = #self.inv
+		end
+	end
+	
+	function player:drop_item(inv_id)
+		if self.inv[inv_id] then
+			sfx(4)
+			deli(self.inv, inv_id)
+			state.inv_index = 1
+			if self.armor and self.armor.id > inv_id then
+				self.armor.id -= 1
+			end
+			if self.sword and self.sword.id > inv_id then
+				self.sword.id -= 1
+			end
+		else
+			sfx(6)
+		end
+	end
+	
+	function player:use_item(inv_id)
+		if self.inv[inv_id] then
+			sfx(4)
+			if self.inv[inv_id].type == item_type_enum.armor then
+				if self.inv[inv_id].equipped then
+					self.inv[inv_id].equipped = false
+					self.armor = nil
+				elseif self.armor then
+					self.inv[self.armor.id].equipped = false
+					self.armor = self.inv[inv_id]
+					self.armor.id = inv_id
+					self.inv[inv_id].equipped = true
+				else
+					self.armor = self.inv[inv_id]
+					self.armor.id = inv_id
+					self.inv[inv_id].equipped = true
+				end
+			elseif self.inv[inv_id].type == item_type_enum.sword then
+				if self.inv[inv_id].equipped then
+					self.inv[inv_id].equipped = false
+					self.sword = nil
+				elseif self.sword then
+					self.inv[self.sword.id].equipped = false
+					self.sword = self.inv[inv_id]
+					self.sword.id = inv_id
+					self.inv[inv_id].equipped = true
+				else
+					self.sword = self.inv[inv_id]
+					self.sword.id = inv_id
+					self.inv[inv_id].equipped = true
+				end
+			elseif self.inv[inv_id].type == item_type_enum.scroll then
+				state.mode = mode_enum.dir
+				deli(self.inv, inv_id)
+				state.inv_index = 1
+			else
+				self.inv[inv_id].func(self)
+				deli(self.inv, inv_id)
+				state.mode = mode_enum.game
+				state.inv_index = 1
+			end
+		else
+			sfx(6)
+		end
+	end
+	
+	function player:check_surroundings(d_pos)
+		if self.belly <= 0 then
+			return true
+		end
+		for i, v in pairs(state.enemies) do
+			if v.alive and self:can_see(v.pos) and self.pos:distance_to(v.pos):magn() < 10 then
+				return true
+			end
+		end
+		for i=-1, 1 do
+			local tile = state.output_tiles[self.pos.y + i][self.pos.x]
+			if tile.item_id or 
+				tile.type == tile_type_enum.stair or 
+				tile.door_id or 
+				tile.enemy_id  then
+				return true
+			end
+			tile = state.output_tiles[self.pos.y][self.pos.x + i]
+			if tile.item_id or 
+				tile.type == tile_type_enum.stair or 
+				tile.door_id or 
+				tile.enemy_id then
+				return true
+			end
+		end
+		for _, v in pairs(state.doors) do
+			if abs(v.pos.x - self.pos.x) + abs(v.pos.y - self.pos.y) <= 1 then
+				return true
+			end
+		end
+		if not state.output_tiles[self.pos.y + d_pos.y][self.pos.x + d_pos.x].walkable then
+			return true
+		end
+		return false
+	end
+	
+	function player:attack(enemy_id)
+		local enemy = state.enemies[enemy_id]
+		local dmg = self.dmg
+		if self.sword then
+			dmg += self.sword.func
+		end
+		if enemy.hp > dmg then
+			state.enemies[enemy_id].hp -= dmg
+			state.enemies[enemy_id].state = enemy_state_enum.hostile
+			add(state.logline, "Attacked " .. enemy.name .. " for " .. dmg)
+		elseif enemy.hp > 0 and enemy.name == "Lich" then
+			state.mode = mode_enum.game_end
+		elseif enemy.hp > 0 then
+			state.enemies[enemy_id].hp -= dmg
+			state.enemies[enemy_id].alive = false
+			sfx(12)
+			add(state.logline, "Killed " .. enemy.name)
+			self.xp += enemy.xp
+			if self.xp > self.next_xp then self:level_up() end
+		end
+	end
+	
+	function player:level_up()
+		sfx(9)
+		self.next_xp *= 2.5
+		self.level += 1
+		self.dmg += 2
+		self.hp += 5
+		self.max_hp += 5
+		add(state.logline, self.name .. " leveled up!")
+	end
+		
+	
+	function player:can_see(target)
+		local new_pos = self.pos
+		repeat
+			local close_pos = new_pos
+			local min_dist = close_pos:distance_to(target):magn()
+			for i=-1, 1 do
+				for j=-1, 1 do
+					local tile = state.output_tiles[new_pos.y + i][new_pos.x + j]
+					local dist_mag = tile.pos:distance_to(target):magn()
+					if dist_mag < min_dist then
+						close_pos = tile.pos
+						min_dist = dist_mag
+					end
+				end
+			end
+			new_pos = close_pos
+			local tile = state.output_tiles[new_pos.y][new_pos.x]
+			if not tile.walkable then
+				return false
+			end
+		until new_pos:distance_to(target):magn() == 0
+		return true
+	end
+	
+	item_funcs(player)
+	return player
+end
+
+function get_player_spawn()
+	local room = state.rooms[flr(rnd(#state.rooms))]
+	local spawn_x = rnd_int(room.top_left.x + 1, room.bot_right.x - 1)
+	local spawn_y = rnd_int(room.top_left.y + 1, room.bot_right.y - 1)
+	return create_pos(spawn_x, spawn_y)
+end
+:: pos.lua
+--[[pod_format="raw",created="2024-04-04 13:13:39",modified="2024-04-06 16:41:33",revision=256]]
+function create_pos(x, y)
+	local pos = {}
+	pos.x = x
+	pos.y = y
+	
+	function pos:vector_to(target)
+		return create_pos(self.x - target.x, self.y - target.y)
+	end
+	
+	function pos:distance_to(target)
+		local vector = self:vector_to(target)
+		return create_pos(math.abs(vector.x), math.abs(vector.y))
+	end
+	
+	function pos:magn()
+		return math.sqrt(self.x^2 + self.y^2)
+	end
+	
+	return pos
+end
+:: projectile.lua
+--[[pod_format="raw",created="2024-04-08 14:15:00",modified="2024-09-25 19:32:07",revision=1390]]
+function fire_projectile(start_pos, dir)
+	local x_dir = dir.x
+	local y_dir = dir.y
+	local pos = create_pos(start_pos.x + x_dir, start_pos.y + y_dir)
+	local tile = state.output_tiles[pos.y][pos.x]
+	
+	repeat
+		tile = state.output_tiles[pos.y][pos.x]
+		if not tile.walkable and not tile.enemy_id then
+			return false
+		end
+		pos.x += x_dir
+		pos.y += y_dir
+		
+		gen_map(state.output_tiles)
+	until tile.enemy_id
+	return tile.enemy_id
+end
+		
+		
+:: room.lua
+--[[pod_format="raw",created="2024-04-04 12:52:15",modified="2025-11-26 10:35:23",revision=3058,xstickers={}]]
+function create_room(section_id)
+	local section = state.sections[section_id]
+	local room = {}
+	room.id = section_id
+	room.top_left = create_pos(rnd_int(section.top_left.x + 1, section.bot_right.x - 5), 
+		rnd_int(section.top_left.y + 1, section.bot_right.y - 5))
+	room.bot_right = create_pos(rnd_int(room.top_left.x + 4, section.bot_right.x), 
+		rnd_int(room.top_left.y + 4, section.bot_right.y))
+		
+	function room:is_inside(pos)
+		if pos.x >= self.top_left.x - 1 and pos.x <= self.bot_right.x + 1 and
+			pos.y >= self.top_left.y - 1 and pos.y <= self.bot_right.y + 1 then
+			return true
+		end
+		return false
+	end
+	
+	function room:draw()
+		local visible = self:is_inside(state.player.pos)
+		for i=self.top_left.y, self.bot_right.y do
+			for j=self.top_left.x, self.bot_right.x do
+				local tile = create_tile(j, i, 255, tile_type_enum.floor, true)
+				tile.room_id = self.id
+				if visible then
+					tile.sprite = 1
+					tile.seen = true
+					state.tiles[i][j].seen = true
+				end
+				state.output_tiles[i][j] = tile
+			end
+		end
+	end
+	return room
+end
+
+function get_sections()
+	local sections = {}
+	local sect_height = 15
+	local sect_width = 15
+	local map_height = #state.tiles
+	local map_width = #state.tiles[1]
+	
+	for i=0, (map_height / sect_height) - 1 do
+		for j=0, (map_width / sect_width) - 1 do
+			local index
+			if i == 2 then
+				index = j + 2
+			elseif j == 0 then
+				index = i
+			elseif i == 1 and j == 2 then
+				index = 5
+			elseif i == 0 and j == 2 then
+				index = 6
+			elseif i == 0 and j == 1 then
+				index = 7
+			else
+				index = 8
+			end
+			sections[index] = {}
+			sections[index].top_left = create_pos(j * sect_width, i * sect_width)
+			sections[index].bot_right = create_pos(((j + 1) * sect_width) - 1,
+				((i + 1) * sect_width) - 1)
+		end
+	end
+	
+	return sections
+end
+	
+:: stair.lua
+--[[pod_format="raw",created="2024-04-07 00:37:57",modified="2025-11-26 11:00:06",revision=1921,xstickers={}]]
+function create_stair()
+	local stair = {}
+	stair.pos = get_stair_pos()
+	
+	function stair:draw()
+		if self.pos.x == state.player.pos.x and 
+			self.pos.y == state.player.pos.y or
+			not state.player:can_see(self.pos) or 
+			state.output_tiles[self.pos.y][self.pos.x].enemy_id then
+			return
+		end
+		local tile = create_tile(
+			self.pos.x, 
+			self.pos.y, 
+			8, 
+			tile_type_enum.stair, 
+			true)
+		tile.seen = true
+		state.tiles[self.pos.y][self.pos.x].seen = true
+		tile.stair = true
+		state.output_tiles[self.pos.y][self.pos.x] = tile
+	end
+	
+	return stair
+end
+
+function next_floor()
+	sfx(2)	
+	state.floor += 1
+	state.logline = {"Welcome to floor " .. state.floor}
+	if state.floor % 3 == 0 then
+		music(7)
+	elseif state.floor % 3 == 2 then
+		music(6)
+	else
+		music(4)
+	end
+	state.updated = false
+	state.draw = true
+	state.tiles = gen_tiles()
+	state.output_tiles = {}
+	state.sections = get_sections()
+	state.stair_index = 1
+	state.inv_index = 1
+	state.rooms = {}
+	for i, v in pairs(state.sections) do
+		state.rooms[i] = create_room(i)
+	end
+	state.halls = {}
+	gen_halls()
+	state.doors = {}
+	gen_doors()
+	state.player.pos = get_player_spawn()
+	
+	reset_output()
+	for _, v in pairs(state.rooms) do
+		v:draw()
+	end
+	for _, v in pairs(state.halls) do
+		v:draw()
+	end
+	for _, v in pairs(state.doors) do
+		v:draw()
+	end
+	gen_enemies()
+	state.player:draw()
+	for _, v in pairs(state.enemies) do
+		if state.player:can_see(v.pos) then
+			v:draw()
+		end
+	end
+	gen_items()
+	for _, v in pairs(state.items) do
+		if state.player:can_see(v.pos) then
+			v:draw()
+		end
+	end
+	if state.floor != 10 then
+		state.stair = create_stair()
+		state.stair:draw()
+	else
+		state.stair = nil
+	end
+	
+	gen_map(state.output_tiles)
+end
+
+		
+function get_stair_pos()
+	local room_ind = flr(rnd(#state.rooms))
+	local room = state.rooms[room_ind]
+	local spawn_x, spawn_y, tile
+	repeat
+		spawn_x = rnd_int(room.top_left.x + 1, room.bot_right.x - 1)
+		spawn_y = rnd_int(room.top_left.y + 1, room.bot_right.y - 1)
+		tile = state.output_tiles[spawn_y][spawn_x]
+	until tile.walkable and not tile.item_id and not tile.enemy_id
+	return create_pos(spawn_x, spawn_y)
+end	
+:: state.lua
+--[[pod_format="raw",created="2024-04-03 17:34:57",modified="2024-04-08 23:30:53",revision=1383]]
+mode_enum = {
+	game_start = 1,
+	game = 2,
+	inv = 3,
+	stair = 4,
+	dir = 5,
+	game_end = 6
+}
+:: tiles.lua
+--[[pod_format="raw",created="2024-04-03 17:39:00",modified="2025-03-12 14:23:45",revision=4071]]
+function create_tile(x, y, sprite, type, walkable)
+	local tile = {}
+	tile.pos = create_pos(x, y)
+	tile.sprite = sprite
+	tile.type = type
+	tile.seen = false
+	tile.item_id = nil
+	tile.door_id = nil
+	tile.enemy_id = nil
+	tile.room_id = nil
+	tile.hall_id = nil
+	tile.walkable = walkable
+	return tile
+end
+
+tile_type_enum = {
+	player = 0,
+	door = 1,
+	floor = 2,
+	wall = 3,
+	item = 4,
+	enemy = 5,
+	stair = 6
+}
+
+function gen_tiles()
+	local height = 45
+	local width = 45
+	local tiles = {}
+	for i=0, height do
+		tiles[i] = {}
+		for j=0, width do
+			tiles[i][j] = create_tile(j, i, 2, tile_type_enum.floor, false)
+		end
+	end
+	return tiles
+end
+
+function gen_map(tiles)
+	for i=0, #tiles do
+		for j=0, #tiles[i] do
+			mset(j + 15, i + 15, tiles[i][j].sprite+spr_offset)
+		end
+	end
+end
+
+function reset_output()
+	for i=0, #state.tiles do
+		state.output_tiles[i] = {}
+		for j=0, #state.tiles[i] do
+			state.output_tiles[i][j] = state.tiles[i][j]
+		end
+	end
+end
+:: util.lua
+--[[pod_format="raw",created="2024-04-04 23:06:52",modified="2024-09-25 19:35:19",revision=344]]
+function rnd_int(start, limit)
+	return flr(rnd(limit - start)) + start
+end
+:: .info.pod
+--[[pod,author="crimson2877 (original) | Jonson26 (bugfixes)",created="2024-04-06 23:20:18",icon=userdata("u8",16,16,"00000001010101010101010101000000000001070707070707070707070100000001070d0d0d0d0d0d0d0d0d0d07010001070d0d0d0d0d0d0d0d0d0d0d0d070101070d0d0d07070707070d0d0d0d070101070d0d07070d0d0d07070d0d0d070101070d0d07070d070707070d0d0d070101070d0d07070d070d07070d0d0d070101070d0d07070d0707070d0d0d0d070101070d0d07070d0d0d0d0d0d0d0d070101070d0d0d07070707070d0d0d0d07010106070d0d0d0d0d0d0d0d0d0d07060101060607070707070707070707060601000106060606060606060606060601000000010606060606060606060601000000000001010101010101010101000000"),lowcol_icon=true,modified="2025-11-26 11:01:33",notes="Picotron roguelike\nGet to floor 10 and defeat the Lich!\nNow with fixed shields!",runtime=24,stored="2024-04-19 02:36:17",title="ImPogue (Improved Picotron Roguelike)",version="...",workspaces={{location="main.lua#262",workspace_index=1},{location="stair.lua#29",workspace_index=1},{location="room.lua#42",workspace_index=1},{location="hall.lua",workspace_index=1},{location="gfx/0.gfx",workspace_index=2},{location="gfx/1.gfx",workspace_index=2},{location="map/0.map",workspace_index=3},{location="sfx/0.sfx",workspace_index=4}}]]
+:: gfx/.info.pod
+--[[pod,created="2024-04-03 17:12:03",modified="2025-11-26 11:01:33",stored="2024-04-03 17:12:03"]]
+:: gfx/0.gfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA0LTAzIDE3OjEyOjAzIixtb2RpZmllZD0iMjAyNS0w
+My0xMiAxNDoyMzo0NSIscmV2aXNpb249NDQ0Nl1dbHo0ADoCAACEMgAA8BN7WzBdPXtibXA9cHh1
+AEMgCAgEkEcQFyAXABcANwAXAAcACgDzBScQF2BHACxmbGFncz0wLHBhbl94CADKeT0wLHpvb209
+OH0sSABf8BoH8AU0ABy1kAcQByBXIAcQBzAKAB_QRAAdQk8bEB4CAG8gTlAeID5BAB0zoBxQAgA-
+0BwgPAAc-wOwClA6IAoAClAqUAoACiA6UApCAB1VYARQFEACAD9QBFBAABzfoBRQFDBUEFQwFFAU
+oDwAHCEWcAIAMVAWMAIAD3sAHUKQRVAVAgA-IEWAPAAcj-AUHxlQHkAeswAddfACPxMgHhACAA-v
+ASAlFlACAA9_AB5-CV8PEF7wCTcAHj9WEFY2ACA-VRBVNgAeHxDPAwQPoQEdEKCgAQICAD-QHiA9
+AB4DOwAPPQAiIxtQAgA-0BsgNAEeL18SoQEg-wY-EFAOPxsQDg0QHQA_AB0gTVAdID1ZAh0v8DAx
+ABlfEBAE8PBiABzwAAAYUBhQGBAYEBgAGCA4MAYAPxgQGNoBDC0xNkcARR8QUB4CAB9eQAAOD7gA
+Hg8xAFwDwQGTUA4-ExA_AB0QAgAOwgEPqAAPDzEA--82AZICrkAIDlAOCBAYAD6tAw94ABgPMQD-
+--_-A60GfzcQDgcgFz50DSlfBAQE-xAyAB4fGjIAHR-4MQAdL-YAcgEeDzEArABYAR8c9gAfDzEA
+----------------------------------------------8CUG09OH19
+:: gfx/1.gfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTEwLTAxIDA4OjAxOjM0Iixtb2RpZmllZD0iMjAyNS0w
+My0xMiAxNDoyMzo0NSIscmV2aXNpb249MTQ3XV1sejQAOw4AAJdPAADwKXtbMF09e2JtcD1weHUA
+QyAICAQGBQYaBQYFFjoGDxwFBg8XDA4MBQ8cLxYuDxwGLxYfFA8WDxwFCQDzDB8WBgUNHxQNCwUm
+OxYsZmxhZ3M9MCxwYW5feAgAzXk9MCx6b29tPTh9LGUAAQIAE3YIABuWEAAfhlAAHC-1MIEAJ-8O
+OwUmCwgLCCYrHxQLBQsGPgYLBQYLDgUOBSYLFgvZACAgHxQ-Af8PBx4HFgUGBRcGBSYHHAcmBzwH
+BQYHPAcGBQc8ByY3VwAf-wo5BgUGCToJBglaGVopOikKOQoJBQk6CSY5SwAdEBT3ADwkVgR6AQMT
+AT8kNhRRABzvrxQUXhQ_VB5UPhReFK49ABzvcBZQFlA2MDYwVhBWEHY9ABzSBl8WBQYOHxwfGg4G
+BQgAFBYHAP8FHR8cDgUGDh0cDgYFBg4NDA5GHibMAR8GlQL-CQ8ZCQ4mDgkeCQ4GCR4JTgk_Bk4G
+BRYeRlQAHvAKPxMGBRYOCA4IFgVeBg4GPgYeBT4GHgY0Bq8AfxQOBSYOFg4fAh8AAgBgHxxGDgwO
+CwBgDgwOFg8WBwAhJh0SAO8WDxQNNg0LBR0GBQYdVl4AHvAGVwYHHw8KHgcFBw4KLgcGBx4KHgcG
+DABvl04HBmcGUAAhQEYHBQccA1AGB0UHBgoAL5dGSwAlUQUmBQcFBgATBgYAXxUGFZdFTwASD-wE
+Yw4jBGAfGQcmBz0kBBA9JAQePSQED1gAJB8eWABDUBsHJgc7VwAQO1cAHztXACKxVwYHPA8SBwUH
+HgxPAhAMWwIvPA5UAiIgPxACA8QWDkYFDjsFBj4LDxvQBRE90AU-DQUN0AUiH-BZBhpfEBAE8PC8
+AyIAowPxBxgWDhYFBj4FJg4KDgomLh8UDgUOBj0YBAG-AA8ZBA8vMTZeAAAQJ7sB-xUIBwgHBgUP
+EEcOFg4HAAcOFgUOJw4FFh4BHgYFLgEeFi4BHgZcAA0P6wAeDzEAXAEHAhAfXwXRDxABDxMBFgUP
+EE8TBhQAD2UFAQ__AB4PMQD-Dw8xAwpPLjYyNUsCJg8rAcEEtAQA_gP-EAUOPQUGPg0CJi0fFA0F
+DQY8Bg0FBg0MBQwFJg0WDRZaABz-AjEXBgUWAQIHAgcGBQFHDxAx8gMiDxMBAA8xAP--NfIAKOAB
+AAAOAQAABPBi9f9fBQBCY-X-XgoAR2H1-2AUAAcFAPAVhRD1-1PwZGUQ9f9U8GZFAPX-VfBkBSAF
+IAUQ9f9S8GM1IAUwCQBQYlUANQArAPELYlUQ9f9X8GP1HLd1d9W3FRcVdzV3FfcE9csUAPAjDxVl
+dw7Ftw4FFw4Fdw4ldw4F9wQO9crwY-UdDhdeNzU3Xjd1N543DhUONy41DjcuFQ4OAAEhAIAeFw5F
+Nw4lNwYAQWU3DoUMABFlDwARhSMAMWX1HCMAxgU3LlUONzU3LpUOFyQAWiUXRQ4XJwADRAAZxSYA
+IQ5FJgDzAWT1HZcuBTcOlQ43FTcO1R4iAEKXDlUejgAQlzUAEaVHACT1Ax0AIfXSqQAVjhsAMmV3
+NRwANDc_Fx4AJg6lHgAJegAg9dJ3AAcgACd1LuUALTUeIAAXpR8AwfXY8GL1HxcOtQ43lUABF5Ud
+ALSlF-XL8GH1IBcOxfYAGYUfAAVjAUHVDjdVewEwdRcubAExVw5FLABC9Qv_ryIAEeUzAEFlNw5l
+RwEGIgBACR7-DyQA8AEcV_UuV051LncuVQ53HlcV4gHyCQgOHQ79rvBk9RtXDvUBVw7ldw6Fdw4F
+VwAC9gkHDj0O-a3wZPUcXvUCXvUAfpV_FV4V-gQZABaZCQDBTQ79rPBj1faNDh0uCgBQBvWMDg1g
+AOms8GLl9ggF9mAF9gQOLRAAIAU_DgAzdQBVEAAQCB4A8ABjNQAVAGX2BgX2YgX2BgUTAIpkFRAV
+AAUARRUASgUQJSATANBmNRBl9gQF9mQF9gQVEQBJZTUQdREA8ABmFUAFEDX2AgX2ZgX2AiUTANFj
+JSAlIFX2APBq9gA1EQBzNRA1EGUWBQIAI-BsCQAxBRZFHwBPRQBFAB8AChPFEAAPHQA5Q2FlELUQ
+AA8dAAA-9QUWHAAhM2L1BA8ADxwAGzNj9QMPAA84AAIPjABaD8QAQQ8cAAkzZvUADwAPHAAbM2X1
+AQ8ADhwAM2T1Ag8ADxwAbw78AA5sAQ8cADkPqAAKHzX1Agg-YzUQTAMIMzUA1RAADh0AL2JFHQAK
+IzClEAAPHQAALzUQOgAHQ2MVEOUQAA4dAD9kBQAdAgkzNSCVEAAOHQBjZwUQJQB1EgAOHwB-ZBUg
+BQAFECEACFMlEAUghRIAD3cEAi8lAB8AB09iVRC12QEiDkkCDxwAEw4RAg8cAIMO0QMPHAAvDhgB
+DmwBD4gBIA-gAJIOHAAP4ABLDhwAD4wASw9UAAwPHACSDsEHDxwAZ28ABYAV8EUhAAf-B4AFQCVQ
+RdAlcDUABcAV8AgVUAVQJSC-BQb-B3A1EEUwdSAVUFUwhaA18AclQFUABSC0BQf-BFDVENUw9QYg
+NRBV8AU1MGUABQBRAgfvUPUPEPUGEPUA8AP1ACAhAwf-AED1EQD1BRD1A-AA9QEAFTMGCP8DFSD1
+ECD1BAD1BQAVcAUg9QEAXwIHQCUQ9Q4bDq8AMPUJYAUQ9QEQLAAI8wAA9Q4QRRDFAAUQ9QtQ9Rkb
+AA0oAPMBNQD1DBBFIHVQBQD1DED1GhsADigA3xD1CiBFMEUgRRD1DTAoAAfzBUUQ9QkABQAlIBUQ
+NRBFIPUOEPUbHwAOVADwACD1CBAVEAUANQAFEAUgRSkBHw0wAAjzCyUQBRD1BwA1AFUAFTAEEBUQ
+JQD1DQAVQPUUJQAOMgDwAwAlAPULEFUAFRAEDRQwNRD1DA0CExcjAA8wAADzB-UPAAUANRAVABQN
+RABFQPUIIBUQ9RUjAA0wACL1Er4A3wAFAI0ARQDlAKUQNQAvAAgREbUAzwUgRA0kECUg1SCFEEoB
+B-8B9RYAJQAVIDQNJDAlAPUAACwAC4AQFQAlEDQNJEQBMAUAdcYCD-QBBmD1FwBlAH0bAU8EEFUQ
+KgAM33UADTQQNRD1AzAVIBUrAAyQEDQA9QcQBQAVagETGB0ADioA-wAYAHUQJAD1CCA1AGUA9Rco
+AAhRhUD1CgBIAhMWGQAPJgAAsBBlICUA9QkARQA1zQAPKgAHECC9Al8FIJUAJaQBCY8gAHUA9QgQ
+dewACV8gAPUSACIADS8aECAACBN2DQAPGgBnFnUrDyj1dEoPKPVzaw8LDgAYcqkPDw4AChdxDRAP
+DQAJQgb1kAYWABCSBwAm-xQGAEsLAPX3CABANAD1sgsAcgwA9S4QFRANABAI0gFALzD1sw0AIAkA
+ZhBS9S0A9bQPABAlBAVBHzCFEBEA0JUQ1QAlEPUdMAQNBCBJBPAH9a8O-aylANUAFRD1HRA0DTQQ
+RTD1sRQA8RMQZQBVIPUdEEQNVFAVEPWwDv2stSAVAAUQZbD1EgDtEFUAFADwBOUABSB1AAQNZA0w
+9Q8AJA1kDSQcAgBXAEH1ACCFGgBSNGD1BxAbAJL1uA79rHUwRRAaAHZkDSRg5RA0GwDzAGUQFRBF
+AIUA-QwghTD9ARUAgQA1EDUAdRBEMgBgZA0EICUwNAASZB8Ac8UQJQBlEFQdACIkQAgAMQD1txwA
+ahUQVRBkDQIABBwAYwUQVRD9MQ4AVAAFEEUgYwAEAgASNB0AELW7BC8QZB0ABF4ARTANZBwAQQQQ
+9aFKAVBVEP02AOcGEaKDASRlAKwACJIAIQIgHwAl9QLKAAkeADEA9aQeADwAZA0CAHIEAPUBUPWf
+HwBS-ToQpUAsAF0DABQNZAIAUGAVQPWmHwATBIIBCgIAb1QwNAD1pSAAB4JkDVQAlSD1mCIAkv1I
+ABUgFTD1mg8ADD4BA5IBUCAVIPWdIgAhBQC3AQ8tAQAvRQAiAAsQFL4EEpwiADP9RSCiAD8QDWQC
+AABPJBD1p8EACUAkAPWoIAA-AxAEQAAKUQMA-UcQLAFOFRB1cJYBA3wBEaZJCA47AgW7AAJQAU9F
+UGQNIQAKQnUA-VQKADFVEAUvAw8CAAIANgYACQExVQAlbwMPAgADMABFEFEBEKs8Fw4GAga_ANEF
+MPWeDv2rRRA1AP1VsAJfq0UARSCFAQMBcgNuoQ5d-qXV8QIEIQC9VRD1mg4tHv2l9QExAwQkAJA1
+IPWbDh0_-aRkAUBOUPWdehUfpNABBQCyASI1ECUAT6P1BRAkAAYyMPWbJAAeBiYDBCQAMAD1n-AV
+YKP1BwD9Sg8AEKDfFT_k9QcnAQRgJEA1EPWgzwAPIgAD31RQFQBVAPWi-qX1BhAhAAKgAHUQ9f9z
+AP1BEPIYL3EQiQEDj6UA9f9xAA1kHQAfofX-fQD9QhD1-3w8Ayo0YL0BUTQg9f98TwI7FCBVogBx
+BFAFYPX-dUgCNwQQhToA_ApUMEUg9f97gD0A9QAQ-RoAlRD1-4NA9QEAtwIAlwBHhhD1AtAEsRQA
+tXD1-34Q9QIwcwARwBQAMMUAFZsJsf_AEPUDIK0QtRCNEwBQ9f_EEPXrAvALRADlEFQQ9QAA9f_D
+MPUGEAQNRAD1AWD1-5TNBtAIcPX-qxAlEPX-yRA1wgog-8YFC0Ag9f-L6glX-9AA9f8BAAy9GpMt
+MTUzLjM3NDkBAAPMGmUxMTQuOTMBAALaGh8xCxseD-0e9BEK-R4QKmslQQ4PFw8EAG8FDxw_Hxdu
+JQVPDAUmPAsfGm8EBAT-EAAyAB0fGjIAHR-4MQAdL-YAkAEeDzEArABYAR8c9gAfDzEA--------
+--------------------------------------8CUG09OH19
+:: label.png
+b64$iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOCAYAAABRmsRnAAARRElEQVR4Ae3doZLrSJYG4LTC
+QFBQ8D5CP4LgwIaCDQcOXDhw4MKFAwUbNsxH6EdoKGhoYLARt29WyLqSS3ZZsiR-X0RFpfKklOlT
+Zf30EGO8hB_qqkrDp4sxzr5Hd68l9gGAR2UpFKuq_gjJuQJxzj0AYEuOt0IzhfPYXArWobVTQjn5
+bI8p6-prAWDNsrFwrKrqKlyH5vrz95q6x5R1XzkHACzt_NUHPDvwusH7jHUAsMsAfkbYdkN8aqA-
+O-gBYPEA7gdhVVWT5qYau7f-nO66W-sMrevPAcCaHUIIl1dsHGO8O8gBYC_yV20sfAEQwACAAAaA
+vTvGGD8uqqqabaO0z5x7dPdaYh8AeFSWQrGqqo_QnCsQ59wDALbkeCs0UziPzaVgHVo7JZSTz-aY
+sq6-FgDWLBsLx6qqrsJ1aK4-f6_pe0xZ95VzAMDSjl99wLMDrxu8z1gHALsM4GeEbTfEpwb6s4Mf
+ABYP4H4QVlU1aW6qsXv7z_muu7XP0Lr_HACs2SGEcHnFxjHGu4McAPYie9XGwhcAAQwACGAA2Lvj
+_dR_XORFOdtGaZ859_jutcQ_APCoLIViXpQfITlXIM65BwBsyfFWaKZwHptLwTq0dkooJ5-tMWVd
+fy0ArFk2Fo55UV6F69Bcf-5eU-eYsu4r5wCApR2-_oBnB143eJ_xDgB2GcDPCNtuiE8N9GcHPwAs
+HsD9IMyLctLcVGP39p-TXXdrn6F1-TkAWHUA3wq5z_buCeKpa2-tcSu87z0PALxS9qqNhSUAAhgA
+EMAAIIABAAEMAAIYABDAACCAAQABDAACGAAEMAAggAFAAAMAAhgAduIYYwxVVX2-SuMY48eCVLtX
+97m35obu6_87NAcAW5aNFaqq_imM7wnfKXP9_RTQ3X2H5gBgtwH8FVVVTZq7Z43wBWBPjmPhlua6
+oRhjnBSkUw0979a_QhiAvchS2PWDcGxubmnfbtgusS8ALB7AU3VD8atijD8F6zOfDwBrdrxncT8w
+PwvqbsgOzQ09P61La4bmAGDrDiGEizYwl-OpDXlR-jRW30cdEMCsNHyHdF-o6tutA1_TaQFzSS-q
+vCivxur7qAMCGAA25xBjvKSLqqpGF8YYr9b0r79q7HkxxqftwbLOp3ZwPi9K9R3Uga-JUuhVVfUR
+gkP6IfjMUEwh2z-DrfOwfulFnRfl1Vh9H3XgCQE8For3BOAcwfnMkOe1ITz28lbfdh143LEbmCnw
+YoyD40dMub_qqp-OAAB7lqXQ64ZgCs7u9aOmBGoK6f4Z2L7zqR0cL1XXf-2FtTrEGC8pJFMQpt9j
+QXnruh_8Y88ae_5ne7DNl39XXpSL1PVff2HNshRy3aBLIZx__mE5dl1V1U9hOSU8u-sNBXp-T7Yh
+vajzorwaL1XXf-2FNTuOBeTQ-GfhmoJySug_sh8A7MUhhHDRBuZwPrWD83lRLlJPa7rXQ2fca32J
+-gKPy7SAuaQXdV6UV_Ol6lPCYs-1JfoLCGBWHsJjL__56-qvv7DqAI4xfv-p6l_PzU3x6H3PfgYA
+rCaAY4yhqqrvP2sNOeG7XedTOzheqq7-_gtrdYgxXqqq_gi6oSAem_uGY7ruB2a6t7-HPeHbfwbb
+e-l35UW5SF3-9RfWLEsh1w-N9Ls77s91r9P9KSj764bCtx-q7Et6UedFeTVeqq7-_gtrduyG6yOB
+OPWefvh29526x9AzAB5V1s1L92_b2h-hjR1ijJduAA_Nx0J0aP2t_27d-0iAs27nUzs4nxflIvW0
+pns9dMa91pforwAWwDwuGyukwIwxjs59tqY73611r9mv9KLOi-JqvFR9Sljsub5Ef4HHHUIIF20A
+3lFZNy-dv21qf4Q3lmkBAAhgduZ8agfHS9Unn7P9ttu-QfPrL6H59Rf-jLAyhxDCRRuYO3y78qJc
+pP5o_OblX7sL4BBCqH--0z9lT1k3L92-bWp-hDeWxRhD_pninrVzWss5GJeCMC-Kq-FS9anhmwI3
+L--aVfg2v-7yEb5D18BrHUMIoaqqj1BL47HQu1VfMnynnhluycu-wrn99lMYP1v7z79-l-_n52v2
+P-97-Qf6z79_-OGetB66DjHGy1CYxRi--_6G21DY9del66F7_-NDe9wTwI-ezzLOp3Y49IpykXpa
+070ePeuP8O2H8Gf3T33_WAB-9flT9m9_-eX73vXvf-qn7Cnr5qUB3Da1P8Iby24FXDfkur_74-66
+FIj9e9NcP_z793bHU0KY9UrBkBfl1Xip_tD1UPCe229XIXzP-V8J32c8f8r_wDodbwVcVwrKfuhN
+CcxuyHbvH7p3aqgK322F8FhYzF3-9Hw-AncofJ9lKHiXVP-_p39E2FIAPzsI07puiA-dOxTyMLe5
+wpdt_c_--jnrevgpgGOMV4FYVdXH3K2QnbpuaM3YvVPCt3uvsF6386kNeVH_NF6qrv-6C2t1CCFc
+tIG5Xv5Dui-0Oev6r7_fKevmpfu3Te0f9Y1lWsBc0os6L8qr8VJ1-ddfEMAAwJVDCOGiDczhfGoH
+5-OiXKSe1nSvh8641-oS-d26sm5eun-b1F4UbyzTAuaSXtR5UV6Nl6pPCYs915foLyCAWXkIj728
+567rv-7CWh21AOA5-mr_e3X9rf5NUxiVaQFzOp-awfFSdf3XX1irQwjhog3M-fLvyotykbr_6_9n
+yrp56vP_av57df2t-u3m_rap-aO_sUwLmEt6UedFeTVeqq7-_gtrdtQCgGn_8e9-XF3-8e8-rq6-
+1b9pEpMdQggXbWAO51M7OJ8X5SL1tKZ7PXTGvdaX6O-WlXXz1AC_V9vUXhRvLNMC5pJe1HlRXo2X
+qk8Jiz3Xl_gvIIBZeQiPvbznruu--sJaHbUAllfWzdV129SasgF--PsPTeB5ARxjvJqoqiqkuaqq
+Fj9QjPEl_zKP86kNeVH_NF6qvlZtU4dz_Ef4Vv82a-i_a39hCw4xxstQ4L0iCF8Z-Mzz8h-SfaHP
+WV_7sm7CX81-Qx7__PvzhH-8ff4f12vv-x6UdfPS-dum9qJ4Y9k94ZgCcmwujYfWTiF49yW9qPOi
+vBovVd-Ci-9b-Vso6_bp4fvu-YUtOHaDcywAY4wftTQemuuPh_4HQmib_iN0PwLvieHL9L-DV5R1
+89Tn8V4OMcbLUDh_FrCfzT1KWO-H_dQOzudFuUg9releD53xVfUUwHn442r8tOcv0N93J4D5imyJ
+TWKMOv2G0os6L8qr8VL1KWHx6vrHuh-Bm4L4Gc9for-A446fBWdVVd9-UohWVfXxuz835rN6P6jT
+vuwnhMde3nPXV92bH6E7dr2F-gOPO4QQLtoAjzmf2puhxbaUdfOl_9um1kQmy7SApQJqKKzmri-x
+2fKi-Ph5xTle2X-gcYcQwkUbmPvl3-VZUD2rvmQA98_y1Ble2f89KuvmS-e3Te2Lz2SZFjCX9KLO
+i-JqvFT9VZ-3XfoPfM0xxhiqqnraA2OM338-_sxnnweWcj61Qmpn2qbWBGZziDFenh14j4boV8Ob
+dQZSXwqouetpza1A-Ep9SuDOuf-U883Z370p60YAs5jsVhimQOyG49C4e-0Vgndf0os6L8qr8VL1
+KWHxlXo3qLo-S_0-9Xxz9hd4cgDHGL_HYVVVN8P1nnW8dwiPvbznri-x_fo-79R-4HHHr4bmlHVV
+Vek0AHRkt0Iz-fQDtzs3tu6RMGd-zqd2cLxUXf-1F9bqEGO89IO3H5pVVX1cDwXy2L23QvmzoL73
+Xtb98u-Ki3KRuv7r773Kurm6bpvaPxKzyaqq_h526acbgN25fn1s3a21nxl6FtuVXtR5UV6Nl6rr
+v-7CqgNYCwBgeYcQwkUbmMP51A7O50W5SD2t6V4PnXGv9SX6uzdl3Vxdt03ti8xsMi1gLulFnRfl
+1Xip_pSw2HN9if4CjzuGEEKM8WOiqqrBhWnNUD3GOHrfmFvPY38hPPbynruu--oLa5Wl8Ew-Y54Z
+lN09u_EP76D59RdNAEJ2KyQ-C8cpaz67n307n9rB8bvUPwvfvX0_YLpDjPFSVdVHGKZxVVUfIfno
+_LPg7e-FfsO3Ky-Kt6iPhW-9_5_7-Hx7UNbN1XXb1L7IzCZLg2eF4NTnCN39Sy-qvCivxu9SvxW_
+e-t8wBcC_FlijLoKn4QvwCGEcOmGZlVVV0Garofmhu67N6jvvY-tOJ-awfm8KN_i-ln47uHz7U1Z
+N1fXbVP7IjObLIVg_ukGaj8cx9Y8EqKP3sd2pBd1XpRX43ep3wrfPXw_4GsOIYSLNsDzNb-_Mhq_
+rFNZN1fXbVNrCrPJtADmIXwBAczLnE-t4Hgtdf3Zdv9gyw4hhIs2MHe4dOVFuYq6-my7f3Mo6_bq
+um1qX2Rmk2kBc0kv6rwor8ZrqevPtvsHAhgAuNshhHDRBuZwPrWD83lRrqKuP9vu3xzKurm6bpva
+F5nZZFrAXNKLOi-Kq-Fa6vqz7f7B1h1CCBdtAAihrJur67apNYXZZFoAAAKYnTmf2sHxWupbP--a
+_weMO4QQLtrA3OHblRflKupbP--a_7dFZd1cXbdN7YvMbDItYC7pRZ0X5dV4LfWtn3-t-QNuO2oB
+8C7Kupl1fdvUmsxkhxDCRRuYw-nUDs7nRbmK_tbPv-b_7SGA7yWAuUemBcwlvajzorwar6W_9fOv
+vX_AAGYFITz28n51fevnX3v-AAEMAAKY93E_tYPjtdS3fv619w8YdwghXLSBucO3Ky-KVdS3fv61
+92_NyrqZ9fltU-viM1mmBcwlvajzorwar6W_9fOvvX_AAAaA1TmEEC7awBzOp3ZwPi-KVdS3fv61
+92_NyrqZ9fltU-viM1mmBcwlvajzorwar6W_9fOvvX_AAGYFITz28n51fevnX3v-AAEMAAKY93E_
+tYPjtdS3fv619w8YdwghXLSBucO3Ky-KVdS3fv6192_NyrqZ9fltU-viM1mmBcwlvajzorwar6W_
+9fOvvX_AAAaA1TmEEC7awBzOp3ZwPi-KVdS3fv6192_NyrqZ9fltU-viM1mmBcwlvajzorwar6W_
+9fOvvX_AAGYFITz28n51fevnX3v-gHFHLQDeRdvUd60v6_ZL98MtmRYwp-OpHRyvpb7186_9f8C4
+Qwjhog3MHb5deVGuor7186_9f3tQ1s3VddvUvtg8TaYFzCW9qPOivBqvpb7186_9f8BtRy0AmKas
+m7vWt02taYw6hBAu2sAczqd2cD4vylXUt37_tffvHQNXAHOPTAuYS3pR50V5NV5LfevnX3v-AAHM
+CkJ47OX96vrWz7-2-gHjjloAMKxt6rvWl3WjaUyWaQEACGAAEMAAgAAGAAEMAAhgABDAAMBtRy0A
+_FtZN4s_r21qTV-x32-uv0-mTwYAyxPAACCAAUAAAwACGAAEMAAggAFgW45aAPAaZd089XltU8-6
+-Gfrn-fdZL4CACCAAUAAAwDzOGoBwGu0Tf2l_8u6uXm9N3v7fJmvAAAIYAAQwADAPI5aALBNbVPf
+rJd1s_rzf-V8-c_-9s-bl-kXBgABDAACGACYx1ELAHiFtqnf_vNn-gUAQAADgAAGAAQwAAhgAEAA
+A4AABgAEMAAIYABAAAOAAAYAAQwACGAAEMAAgAAGgK05agEAe9A29abOm-mTAYAABgABDADM46gF
+AH9rm1oTWEymBQAggAFAAAMAAhgABDAAIIABQAADALcdtQBgn9qm1oQVy7QAAAQwAAhgAEAAA4AA
+BgAEMAAIYABAAAOAAAYABDAACGAAEMAAgAAGAAEMAAhgABDAAIAABgABDAAIYAAQwAAggAEAAQwA
+AhgAEMAAIIABAAEMAAIYABDAACCAAUAAAwACGAAEMAAggAFAAAMAAhgABDAAIIABQAADgAAGAAQw
+AAhgAEAAA4AABgCm_3_8vJYdlSM-gAAAABB0RVh0TG9kZVBORwAyMDExMDIyMeNZtsEAAAAASUVO
+RK5CYII=
+:: map/.info.pod
+--[[pod,created="2024-04-03 17:12:03",modified="2025-11-26 11:01:33",stored="2024-04-03 17:12:03"]]
+:: map/0.map
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA0LTAzIDE3OjEyOjAzIixtb2RpZmllZD0iMjAyNS0w
+My0xMiAxNDoyMzo0NSIscmV2aXNpb249NDMxMV1dbHo0AFwBAABYAAEA8Ql7e2JtcD11c2VyZGF0
+YSgiaTE2IiwxMjgEAF8iMDBmZgQA------------------------------------------------
+----------------------------------------------------------------------------
+----------------------------------------------------------------------------
+----------------------------------------------------------------------------
+-----------------------------------------------------------------_nxCCIpLGhp
+ZGRlbj1mYWxzZSxwYW5feD0wCADCeT0wLHRpbGVfaD04CQDAdz04LHpvb209MX19
+:: sfx/.info.pod
+--[[pod,created="2024-04-03 17:12:03",modified="2025-11-26 11:01:33",stored="2024-04-03 17:12:03"]]
+:: sfx/0.sfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA0LTAzIDE3OjEyOjAzIixtb2RpZmllZD0iMjAyNS0w
+My0xMiAxNDoyMzo0NSIscmV2aXNpb249NDE3OV1dbHo0AMwFAACWDQAA8CdweHUAAygAAAQABA9A
+EAIOAAGgASACoA4ADxAADfDKAQIDBAUGBwAP-5AICQoLDwwPDQ8ODw8QAPAADQ8RDxIPEw8UDxUP
+Fg8XEwDxAQ8YDxkPGg8bDxwPHQ8eDx8UAPAmIA8hDyIPIw8kDyUPJg8nAAOQDygPKQ8qDysPLA8t
+Dy4PLwABkA8wDzEPMg8zDzQPNQ82DzcmAP8EOA85DzoPOw88Dz0PPg8-AAPw-wEA6-AwWgEQBg8R
+EAEgASAB8AACEAIPIBABIA8hIAEwD5YgD9NQDxECIAdQAQ-oEAEPESAPmyAFUAEIIA_0YA9t8AIB
+MQARKTEA8DQHEAEPKWAP0VAPFAIgDwxQASABD-UgD40gD0VQAQkgD4QgD7ggDzYgDybwJg9pD4YA
+D2nwxQ-4Cg--D4AP9w8NAfAJiwAYKIsAERxaAHAP8BABMA6QiQD_Jg8ZUAEP9RAB4AIKIA9kIA9R
+IA8gIA3QAQhgDzPwbxHwFw5QD68PUQAPRhAPOhAPrxAPmvCLZQAeNfAAEQFkAHAMAiAPJ1ABeQAQ
+4OYA-hIbIA_IIA8T8IsPEgAPBPAEBw-A8AYPYg958AYPbA8-8H9cABArXAAzD_EQXgBQLBABIAxQ
+ADEwD85fAFMgUAEP618AkJMgD2IgD3zwAyoAEQ8qALEeEAEPNCAPsiAPHEoBUANQAQ_qPgD_GeiQ
+DwQIYA9WIA8Y8CsK0AJgD_8P3xAPLA_UH28AD3QADzUPeg9-8KOSABEgkgAnDBDwACAMIO4AADcB
+MFbwBp4Bz1MgD4vwjwwADxbwxUIABAMwAR8EPwAbQQwQBgSAABLZgAAQCg4AQA8lDzTUACBEkEEC
+EA5SABAIEADxDbSQDyISEA5QAQ9WEAHgAwoCEA9oIA9gIA99IA7lAe0V8E8PEfAKD6wADz3wqqkA
+FASoAHIPEhAPFg8aawAQPlsAcl6gDxIQAgsSABDAjADvCGAPRvCPDw7wHg9Y8JhMAAcI9ACP8MMP
+KA--8MYuAAMFZAEPJAEFH2djAQYXC24AIQ8ePwCxDwUPJSAPNSAPD1BnAwClAyAMB8wAsTcgDxpQ
+AQsQAg8NKgD-IAHwAAkgD58gD43wBwhgD1ogD5AgDPBADzBQDx0PLA9JD48PXw9vD08PdA8qCvC_
+6wAbDy4Ash--AQDM8CboDgAPZAAPGCAPKW--DyRv-w8m--8fAGUAZQD1HwRlBGUE9R-wcA4ADUAP
+MPUvAfUvDxX1LxEA8gsKQA8oBQMVDyb1KgEFARUB9SoEBQQVDyX1Ki8AdAP1LwL1LwQtALIHDy31
+LhL1LhT1LhEAKAsHEACFDUAPJvUvDwMyAPENDwkIMA8kAw8rDy8PMA80DzcPO-UofwT1KHT1KCAA
+xTkADSAPGA8fDxsPHwgAURoMDx0MBgDQDxv1IP8EAPUg9AD1IDEAIxowSADxBzIPNg85DzQPOA87
+DvUmnwn1Jp8V9SZUAPMEFAgwDy8PKwMPJjf1KH8J9Sh-FW4AgCkPDjAPJA8mkQAiKQuWAKP1J48E
+9SePFfUnwgDzBST1Lwb1Lwg-wA_wL8APsP-AA-UTGwBVJ-UvDwfdAE8NQPWwCAB6AQEC8gMkFQMV
+CxUPLxULRQn1HQ8EFQECAIJFAfUdDxUVAgIAQ0UC9R00AGEwIA8kRQwCAEAPJkUKAgBo9QUPBUUH
+AgBJ9QUERQIALvUFgwAPCAAPIA81pAD4B2oFbykFbPUZYAVgBWD1GWQFZAVk9RkoAA9YAB4PSAID
+Yw8hDx0PIQgARxv1IPFKAgIzAP4TKQUPJ2ULBQoFDPUhAQUBZQEFAQUB9SECBQJlAgUCBQL1IW8A
+D48AEPkBGwAOIA8wBQ80BQ88JQ85ZQwATzIFDzUYAAGfCgUGBQYlBmUGCAAEAZEALyUCCAAGA3oA
+SAQgDCUCAGkPI-UTByUCAEn1EwIlAgAu9RPHAA8IAAwf-wEA-5lQ-----yA=
+:: [eoc]

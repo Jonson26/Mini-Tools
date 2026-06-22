@@ -1,0 +1,166 @@
+picotron cartridge // www.picotron.net
+version 2
+
+:: .info.pod
+b64$LS1bW3BvZCxhdXRob3I9IkZpbGlwIEphbXJvZ2EgKEpvbnNvbjI2KSIsY3JlYXRlZD0iMjAy
+NC0wOS0zMCAxMzoyNToxNyIsaWNvbj11c2VyZGF0YSgidTgiLDE2LDE2LCIwMDAwMDAwMTAxMDEw
+MTAxMDEwMTAxMDEwMTAwMDAwMDAwMDAwMTA3MDcwNzA3MDcwNzA3MDcwNzA3MDEwMDAwMDAwMTA3
+MGQwZDBkMGQwZDBkMGQwZDBkMGQwNzAxMDAwMTA3MGQwZDA3MDcwZDBkMGQwNzA3MGQwZDBkMDcw
+MTAxMDcwZDBkMDcwNzBkMGQwZDA3MDcwZDBkMGQwNzAxMDEwNzBkMDcwNzA3MDcwZDA3MDcwNzA3
+MGQwZDA3MDEwMTA3MGQwNzA3MDcwNzBkMDcwNzA3MDcwZDBkMDcwMTAxMDcwZDA3MDcwNzA3MGQw
+NzA3MDcwNzBkMGQwNzAxMDEwNzBkMGQwNzA3MGQwZDBkMDcwNzBkMGQwZDA3MDEwMTA3MGQwZDA3
+MDcwZDBkMDcwNzA3MDcwZDBkMDcwMTAxMDcwZDBkMDcwNzBkMDcwNzA3MDcwNzA3MGQwNzAxMDEw
+NjA3MGQwZDBkMGQwZDBkMGQwZDBkMGQwNzA2MDEwMTA2MDYwNzA3MDcwNzA3MDcwNzA3MDcwNzA2
+MDYwMTAwMDEwNjA2MDYwNjA2MDYwNjA2MDYwNjA2MDYwMTAwMDAwMDAxMDYwNjA2MDYwNjA2MDYw
+NjA2MDYwMTAwMDAwMDAwMDAwMTAxMDEwMTAxMDEwMTAxMDEwMTAwMDAwMCIpLGxvd2NvbF9pY29u
+PXRydWUsbW9kaWZpZWQ9IjIwMjUtMTAtMjQgMTE6MzI6MTciLG5vdGVzPSJEZW1ha2Ugb2YgYW4g
+b2xkIDE5OTcgZmxhc2ggZ2FtZSBcbm9mIHRoZSBzYW1lIG5hbWUgYnkgQ2xldmVyTWVkaWEuIixy
+dW50aW1lPTIxLHRpdGxlPSJUaGUgVXJpbmFsIEdhbWUiLHZlcnNpb249IjEuMCIsd29ya3NwYWNl
+cz17e2xvY2F0aW9uPSJtYWluLmx1YSM1Iix3b3Jrc3BhY2VfaW5kZXg9MX0se2xvY2F0aW9uPSJn
+ZngvMC5nZngiLHdvcmtzcGFjZV9pbmRleD0yfSx7bG9jYXRpb249Im1hcC8wLm1hcCIsd29ya3Nw
+YWNlX2luZGV4PTN9LHtsb2NhdGlvbj0ic2Z4LzAuc2Z4Iix3b3Jrc3BhY2VfaW5kZXg9NH19XV0=
+:: gfx/
+:: gfx/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA5LTMwIDEzOjI1OjE3Iixtb2RpZmllZD0iMjAyNS0x
+MC0yNCAxMTozMjoxNyJdXQ==
+:: gfx/0.gfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA5LTMwIDEyOjM3OjQ2Iixtb2RpZmllZD0iMjAyNC0w
+OS0zMCAxNDoyODo1MSIscmV2aXNpb249ODldXWx6NABhAQAAJTMAAPMUe1swXT17Ym1wPXB4dQBD
+IBAQBPDwLGZsYWdzPTAscGFuX3gIAMh5PTAsem9vbT02fSwxANEgBPB3F8AHHyAHsAceBADfcLcg
+B74HEAcOB34HDggAAFEeB14HHggA-xEeFx4HHgcgBx4HPgceBzAHLjcuB0AHfgdgB14HgFfwdYkA
+HKVQN6AHPyAHkAc_BAAUoJQAMjc_N5YABAQABoYADwgAIZEgJ14nUAdeB3DEAA8GACNfgBcQF0Dj
+ADOAYEc_RwAH3hcCAF8eB34HHgYADFguB14HLgYAbwcAN143QNEAYJH3Ad8gFw4XDgcCABAnCgAR
+HgwAAB4CEQ4gAgEKAAkWABUODAAZ3gIAMR43fhwAf54XHgeuF94CAAcv9wGnAA4OFQMPMQD-----
+----------------------------------------------------------8RUG09Nn19
+:: main.lua
+--[[pod_format="raw",created="2024-09-30 12:37:46",modified="2025-10-24 11:32:07",revision=182,xstickers={}]]
+function _init()
+	mode = "welcome"
+	--              |-----------------------------|
+	welcome_msg   = "\f6    \fuWelcome to the Urinal\n"
+	welcome_msg ..= "\f6       \fuEqiquette game!\f6\n"
+	welcome_msg ..= "\f6\n"
+	welcome_msg ..= "\f6Your goal is to find the most\n"
+	welcome_msg ..= "\f6  socially appropriate urinal\n"
+	welcome_msg ..= "\f6            to use.\n"
+	welcome_msg ..= "\f6    Play with \fb\139\f6,\fb\145\f6 and \fb\151\f6\n"
+	welcome_msg ..= "\f6\n"
+	welcome_msg ..= "\f6       Press \fb\151\f6 to play!\n"
+	levels = {
+		{
+			{1, 1, 1, 1, 1, 1, 4},
+			{2, 0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 1, 0},
+			{"Correct!\nUrinal six is the correct\nanswer as it gives the most \nbuffer space and shows proper \nrespect for the personal \nspace of your bathroom buddy.", 
+			"Come on. This problem really\nisn't that difficult.\nBe a man."}
+		},{
+			{1, 1, 1, 1, 1, 1, 4},
+			{0, 0, 2, 0, 2, 0, 0},
+			{1, 0, 0, 0, 0, 0, 0},
+			{"Correct!\nUrinal one gives the most \npersonal space and is the \nfurthest from the door.", 
+			"Wrong!\nTry again."}
+		},{
+			{1, 1, 1, 1, 1, 1, 4},
+			{2, 0, 2, 0, 2, 0, 0},
+			{0, 0, 0, 0, 0, 1, 0},
+			{"Correct!\nThis is a really awkward \nsituation. To avoid the \nappearance of pairing you \nshould normally avoid being \nnext to someone else. However \nin this case you are close to \nthe door and are able to make \na quick exit.", 
+			"Wrong!\nTry again."}
+		},{
+			{1, 1, 1, 1, 1, 1, 4},
+			{0, 0, 2, 2, 0, 0, 0},
+			{1, 0, 0, 0, 0, 0, 0},
+			{"Correct!\nBoth urinal one and six give \nthe same amount of buffer \nspace. However, urinal one is \nfurther from the door.", 
+			"Wrong!\nTry again."}
+		},{
+			{1, 1, 1, 1, 1, 1, 4},
+			{0, 3, 0, 0, 2, 2, 0},
+			{0, 0, 0, 1, 0, 0, 0},
+			{"Correct!\nChoosing the other urinals \npairs you with the big guy. \nYou should never leave any \nquestion as to your \nmanliness. Urinal four is the \ncorrect choice.", 
+			"Wrong!\nI know you're afraid, but try again."}
+		},{
+			{1, 1, 1, 1, 1, 1, 4},
+			{0, 2, 0, 3, 0, 2, 0},
+			{0, 0, 0, 0, 0, 0, 1},
+			{"Correct!\nThis was the only good \nchoice in this situation.", 
+			"Wrong!\nTry again."}
+		},
+	}
+	current_level = 1
+	level = levels [current_level]
+	player_x = 7
+	window{
+		width	= 144,
+		height	= 100,
+		title 	= "The Urinal Game"
+	}
+end
+
+function _update()
+	if btnp(0) then player_x-=1 end
+	if btnp(1) then player_x+=1 end
+	if player_x==0 then player_x=7 end
+	if player_x==8 then player_x=1 end
+	
+	if btnp(5) then
+		if mode == "welcome" then
+			mode = "level"
+		elseif mode == "level" then
+			if level[3][player_x] == 1 then 
+				mode = "win"
+			else
+				mode = "loss"
+			end
+		elseif mode == "loss" then
+			mode = "level"
+		else
+			mode = "level"
+			current_level += 1
+		end
+	end
+	if current_level < 7 then
+		level = levels [current_level]
+	else
+		mode = "end"
+	end
+end
+
+function _draw()
+	cls(1)
+	if mode=="welcome" then
+		print(welcome_msg)
+	elseif mode=="level" then
+		for i, v in pairs(level[1]) do
+			spr(v, 16*i, 16)
+		end
+		for i, v in pairs(level[2]) do
+			spr(v, 16*i, 16)
+		end
+		spr(2, 16*player_x, 52)
+	elseif mode=="win" then
+		print(level[4][1])
+	elseif mode=="loss" then
+		print(level[4][2])
+	elseif mode=="end" then
+		print("Thank you for trying our \nlittle test. We hope you \nfound it educational and \nhelpful.\n\nBefore you go be sure to \nwash your hands.")
+	end
+end
+:: map/
+:: map/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA5LTMwIDEzOjI1OjE3Iixtb2RpZmllZD0iMjAyNS0x
+MC0yNCAxMTozMjoxNyJdXQ==
+:: map/0.map
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA5LTMwIDEyOjM3OjQ2Iixtb2RpZmllZD0iMjAyNC0w
+OS0zMCAxNDoyODo1MSIscmV2aXNpb249ODVdXWx6NABoAAAAWBAAAPAIe3tibXA9dXNlcmRhdGEo
+ImkxNiIsMzIDAC8iMAEA--------------------_-EIIiksaGlkZGVuPWZhbHNlLHBhbl94PTAI
+ANJ5PTAsdGlsZV9oPTE2CgAQdwoAgHpvb209MX19
+:: sfx/
+:: sfx/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA5LTMwIDEzOjI1OjE3Iixtb2RpZmllZD0iMjAyNS0x
+MC0yNCAxMTozMjoxNyJdXQ==
+:: sfx/0.sfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI0LTA5LTMwIDEyOjM3OjQ2Iixtb2RpZmllZD0iMjAyNC0w
+OS0zMCAxNDoyODo1MSIscmV2aXNpb249ODVdXWx6NACgAAAACwoAAP8wcHh1AAMoAAAEAAQPQBAC
+DgABoAEgAqAOAA8QAA3wygECA0APD5AEBQYHQAyQCAkKC0AMkA8MDw0PDgxADPD-AQDr-yeqARAG
+DyAQASABIAHwAAIQAg4QASAPISABMA9A8MMPKA--8MYP_AoP-w_AD-cPDQHwCQEQBg4wAP------
+vR--AQCsz8gPQAAPEED--7Dw-wEA-_pQ-----yk=
+:: [eoc]

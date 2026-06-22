@@ -1,0 +1,539 @@
+picotron cartridge // www.picotron.net
+version 2
+
+:: .info.pod
+b64$LS1bW3BvZCxhdXRob3I9IkZpbGlwIEphbXJvZ2EgKEFLQSBKb25zb24yNikiLGNyZWF0ZWQ9
+IjIwMjUtMDctMTkgMTM6MzI6MzUiLGljb249dXNlcmRhdGEoInU4IiwxNiwxNiwiMDAwMDAwMDAw
+MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDAwMDAwMDAw
+MGQwNjA2MDYwNjA2MDYwNjA2MDYwNjA2MGQwMDAwMGQwNjA2MDYwNzA3MDYwNjA2MDEwMTA2MDYw
+NjBkMDAwZDA2MDYwNzA3MDcwNzA2MDEwMTAxMDEwNjA2MGQwMTBkMDYwNjA3MDcwNzA3MDYwMTAx
+MDEwMTA2MDYwZDAxMGQwNjA2MDYwNzA3MDYwNjA2MDEwMTA2MDYwNjBkMDEwZDA2MDYwNjA2MDYw
+NjA2MDYwNjA2MDYwNjA2MGQwMTBkMDYwNjA2MDEwMTA2MDYwNjA3MDcwNjA2MDYwZDAxMGQwNjA2
+MDEwMTAxMDEwNjA3MDcwNzA3MDYwNjBkMDEwZDA2MDYwMTAxMDEwMTA2MDcwNzA3MDcwNjA2MGQw
+MTBkMDYwNjA2MDEwMTA2MDYwNjA3MDcwNjA2MDYwZDAxMDAwZDA2MDYwNjA2MDYwNjA2MDYwNjA2
+MDYwZDAxMDEwMDAwMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDAxMDEwMDAwMDAwMDAxMDEwMTAxMDEw
+MTAxMDEwMTAxMDEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiKSxsb3djb2xf
+aWNvbj10cnVlLG1vZGlmaWVkPSIyMDI1LTEwLTI5IDE2OjAwOjE1Iixub3Rlcz0iVGhlIHNhbWUg
+b2xkIFJldmVyc2kgeW91IGtub3cgYW5kXG5sb3ZlISIscnVudGltZT0yMSx0aXRsZT0iUmV2ZXJz
+aSIsdmVyc2lvbj0iMS4xIix3b3Jrc3BhY2VzPXt7bG9jYXRpb249Im1haW4ubHVhIzUxIix3b3Jr
+c3BhY2VfaW5kZXg9MX0se2xvY2F0aW9uPSJsaWIubHVhIzc1Iix3b3Jrc3BhY2VfaW5kZXg9MX0s
+e2xvY2F0aW9uPSJhaS5sdWEjNTUiLHdvcmtzcGFjZV9pbmRleD0xfSx7bG9jYXRpb249ImdmeC8w
+LmdmeCIsd29ya3NwYWNlX2luZGV4PTJ9LHtsb2NhdGlvbj0ibWFwLzAubWFwIix3b3Jrc3BhY2Vf
+aW5kZXg9M30se2xvY2F0aW9uPSJzZngvMC5zZngiLHdvcmtzcGFjZV9pbmRleD00fX1dXQ==
+:: ai.lua
+--[[pod_format="raw",created="2025-10-23 14:55:30",modified="2025-10-29 15:56:28",revision=13,xstickers={}]]
+function dumbAIMove()
+	possibleMoves = {}
+	i=0
+	for x=1,8,1 do
+		for y=1,8,1 do
+			if isSuitable(x, y) then
+				possibleMoves[i] = {x, y}
+				i+=1
+			end
+		end
+	end
+	if i>0 then 
+		m = rndInt(0, i)
+		dx = possibleMoves[m][1]
+		dy = possibleMoves[m][2]
+		makeMove(dx, dy)
+	end
+end
+
+function maximizeScoreAIMove()
+	possibleMoves = {}
+	i=0
+	for x=1,8,1 do
+		for y=1,8,1 do
+			if isSuitable(x, y) then
+				possibleMoves[i] = {x, y, flips}
+				i+=1
+			end
+		end
+	end
+	if i>0 then 
+		maxS = 0
+		maxI = 0
+		for m=0,i-1,1 do
+			if possibleMoves[m][3]>maxS then
+				maxS = possibleMoves[m][3]
+				maxI = m
+			end
+		end
+		m = maxI
+		dx = possibleMoves[m][1]
+		dy = possibleMoves[m][2]
+		makeMove(dx, dy)
+	end
+end
+
+function maximizeScoreWithEdgePriorityAIMove()
+	possibleMoves = {}
+	i=0
+	for x=1,8,1 do
+		for y=1,8,1 do
+			if isSuitable(x, y) then
+				possibleMoves[i] = {x, y, flips}
+				if x==1 or x==8 then possibleMoves[i][3]+=1 end
+				if y==1 or y==8 then possibleMoves[i][3]+=1 end
+				i+=1
+			end
+		end
+	end
+	if i>0 then 
+		maxS = 0
+		maxI = 0
+		for m=0,i-1,1 do
+			if possibleMoves[m][3]>maxS then
+				maxS = possibleMoves[m][3]
+				maxI = m
+			end
+		end
+		m = maxI
+		dx = possibleMoves[m][1]
+		dy = possibleMoves[m][2]
+		makeMove(dx, dy)
+	end
+end
+:: gfx/
+:: gfx/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE5IDEzOjMyOjM1Iixtb2RpZmllZD0iMjAyNS0x
+MC0yOSAxNTo1OToyNCJdXQ==
+:: gfx/0.gfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTAxLTE3IDEwOjM1OjQ4Iixtb2RpZmllZD0iMjAyNS0x
+MC0yMyAxNDozMjozMyIscmV2aXNpb249MTRdXWx6NADSAAAAbTYAAPEoe1swXT17Ym1wPXB4dQBD
+IBAQBPBWBxAHwBfQF8AHEAfwVixmbGFncz0wLHBhbl94PS0xLjM3NQ0Ay3k9MCx6b29tPTh9LEMA
+-wQwBw8PCgkPHw8ZCA8YDx4PEAxAEgART68X8HVwACH-FEAPE9AOAw6QPhMOcA5jDmAOcw5QDmMO
+cD4TDrAOAw7QDvBqxwAiH-A2AP--------------------------------------------------
+--------------------a1BtPTh9fQ==
+:: label.qoi
+b64$cW9pZgAAAeAAAAEOBAH_--Ho-f39-f39-e3_HStT-f3TP-39-f391yj_wsPHzyg7zyg7zyg7
+zyg7zyg7zyg7zyg7zyg-xP4SU1k-wzvHP-39-f39wig7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg-
+wzn_AIdROT-CO-4AAADFOz-BNcA--f39-fsoO88oO88oO88oO88oO88oO88oO88oO88oP8A5wg-A
+OT-BOzXFOz-ANT-ANT-9-f39_ig7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg-OQ-FOT-AOzXFOz-D
+NT-9-f39_ig7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg-OQ-GOT87NcU7P8I1P-39-f37KDvPKDvP
+KDvPKDvPKDvPKDvPKDvPKDvPKD85D8U5P8A7NcU7P8E1P-39-f38KDvPKDvPKDvPKDvPKDvPKDvP
+KDvPKDvPKD-AOcIPwDk-wTs1xTs-wDU--f39-f0oO88oO88oO88oO88oO88oO88oO88oO88oP8M5
+Dzk-wjs1xTs-wDXCP-39-f36KDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-EOT-DO8c--f39-f3C
+KDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88o
+P8o7xz-9-f39-cIoO88oO88oO88oO88oO88oO88oO88oO88oP8o7P8U7P8E1wD-9-f39_yg7zyg7
+zyg7zyg7zyg7zyg7zyg7zyg7zyg-yjs-xTs-wDU-wDU--f39-fooO88oO88oO88oO88oO88oO88o
+O88oO88oP8o7P8U7P8M1P-39-f36KDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-KOz-FOz-CNT-9
+-f39_yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg-yjs-xTs-wTU--f39-fwoO88oO88oO88oO88o
+O88oO88oO88oO88oP8o7P8U7P8A1P-39-f39KP390z-KOz-FOz-ANcI--f39-fooO88oO88oO88o
+O88oO88oO88oO88oO88oP8o7xz-9-f39-cIoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f39
+1yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvP
+KD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7
+zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88o
+O88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvP
+KDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39
+-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvP
+KDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7
+zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88o
+O88oO88oO88oO88oO88oO88oP-39-f391yj9-dM--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvP
+KDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7
+zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88o
+O88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3X
+KDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO8Y1O8YoO88oO88oO88o
+O88oP-39-f391yg7zyg7zyg7zyg7xTXBO8UoO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7
+xjU7xig7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dco
+O88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg-
+-f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88o
+O88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvP
+KDvPKDvPKDvPKDvPKD-9-f39-dco-f3TP-39-f391yg7zyg7zyg7zyg7xD-DO8QoO8Q1wzvEKDvP
+KDvPKDvPKD-9-f39-dcoO88oO88oO88oO8I-xzvCKDvCNcc7wig7zyg7zyg7zyg--f39-f3XKDvP
+KDvPKDvPKDvBP8k7wSg7wTXJO8EoO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7wD-LO8AoO8A1
+yzvAKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oOz-NOyg7Nc07KDvPKDvPKDvPKD-9-f39-dco
+O88oO88oO88oOz-NOyg7Nc07KDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oP88oNc8oO88oO88o
+O88oP-39-f391yg7zyg7zyg7xjU7xig-zyg1zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvFNcE7
+xSg-zyg1zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvGNTvGKD-PKDXPKDvPKDvPKDvPKD-9-f39
+-dcoO88oO88oO88oP88oNc8oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7P807KDs1zTsoO88o
+O88oO88oP-39-f391yg7zyg7zyg7zyg7P807KDs1zTsoO88oO88oO88oP-39-f391yg7zyg7zyg7
+zyg7wD-LO8AoO8A1yzvAKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO8E-yTvBKDvBNck7wSg7
+zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvCP8c7wig7wjXHO8IoO88oO88oO88oP-39-f391yg7
+zyg7zyg7zyg7xD-DO8QoO8Q1wzvEKDvPKDvPKDvPKD-9-f39-dco-f3TP-39-f391yg7zyg7zyg7
+zyg7xDXDO8QoO8Q-wzvEKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO8I1xzvCKDvCP8c7wig7
+zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvBNck7wSg7wT-JO8EoO88oO88oO88oP-39-f391yg7
+zyg7zyg7zyg7wDXLO8AoO8A-yzvAKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oOzXNOyg7P807
+KDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oOzXNOyg7P807KDvPKDvPKDvPKD-9-f39-dcoO88o
+O88oO88oNc8oP88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg1zyg-zyg7xjU7xig7zyg7zyg-
+-f39-f3XKDvPKDvPKDvPKDXPKD-PKDvFNcE7xSg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDXPKD-P
+KDvGNTvGKDvPKDvPKD-9-f39-dcoO88oO88oO88oNc8oP88oO88oO88oO88oP-39-f391yg7zyg7
+zyg7zyg7Nc07KDs-zTsoO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7Nc07KDs-zTsoO88oO88o
+O88oP-39-f391yg7zyg7zyg7zyg7wDXLO8AoO8A-yzvAKDvPKDvPKDvPKD-9-f39-dcoO88oO88o
+O88oO8E1yTvBKDvBP8k7wSg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvCNcc7wig7wj-HO8Io
+O88oO88oO88oP-39-f391yg7zyg7zyg7zyg7xDXDO8QoO8Q-wzvEKDvPKDvPKDvPKD-9-f39-dco
+-f3TP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvP
+KDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7
+zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dco
+O88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg-
+-f39-f3XKDvPKDvPKDvPKDvPKDvGNTvGKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO8U1
+wTvFKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO8Y1O8YoO88oO88oO88oP-39-f391yg7
+zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9
+-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7
+zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88o
+O88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKP390z-9
+-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7
+zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88o
+O88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvP
+KDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f39
+1yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvP
+KD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7
+zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88o
+O88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvP
+KDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39
+-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKP390z-9-f39-dcoO88oO88oO88o
+O88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvP
+KDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39
+-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvP
+KDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7
+zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88o
+O88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3X
+KDvPKDvPKDvPKDvPKDvPKDvPKDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88o
+P-39-f391yg7zyg7zyg7zyg7zyg7zyg7zyg7zyg7zyg--f39-f3XKDvPKDvPKDvPKDvPKDvPKDvP
+KDvPKDvPKD-9-f39-dcoO88oO88oO88oO88oO88oO88oO88oO88oP-39-f391yg7zyg7zyg7zyg7
+zyg7zyg7zyg7zyg7zyg--f39-f3XKP390z-9-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f394yg--f39-f39-eooPyg--f39-f39-ekoP8AoP-39-f39-f3oKD-BKD-9
+-f39-f395yg-wig--f39-f39-eYoP8AowD-9-f39-f396CjAPyg--f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39
+-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f39-f3P
+AAAAAAAAAAE=
+:: lib.lua
+--[[pod_format="raw",created="2025-08-07 12:52:46",modified="2025-10-24 08:58:48",revision=120,xstickers={}]]
+function initGame()
+	colors = {
+		[1] = 0,
+		[2] = 7,
+	}
+	
+	values = {0, 1, 2}
+	
+	board = {
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 2, 1, 0, 0, 0},
+		{0, 0, 0, 1, 2, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{}
+	}
+	board[0] = {}
+	
+	turn = 1
+	msg = ""
+	
+	game_over = false
+end
+
+function drawCell(x, y, size, offset, value)
+	x=x-1
+	y=y-1
+	if inTable(values, value) then
+		c = colors[value]
+	else
+		c = 23
+	end
+	rectfill(
+		offset+x*(size+offset),
+		offset+y*(size+offset),
+		size+offset+x*(size+offset),
+		size+offset+y*(size+offset),
+		6
+		)
+	if value>0 then
+		circfill(
+			offset+size/2+x*(size+offset),
+			offset+size/2+y*(size+offset),
+			size/2,
+			c
+			)
+	elseif isSuitable(x+1, y+1) then
+		circfill(
+			offset+size/2+x*(size+offset),
+			offset+size/2+y*(size+offset),
+			1,
+			colors[turn]
+			)
+	end
+end
+
+function drawMove(x, y)
+	x+=11
+	if(turn==1) spr(2, x-11, y)
+	rectfill(x, y, 8+x, 8+y, 6)
+	rectfill(x+1, y+1, 7+x, 7+y, colors[1])
+	print(calcScore(1), x+11, y+1, 0)
+	y+=10
+	if(turn==2) spr(2, x-11, y)
+	rectfill(x, y, 8+x, 8+y, 6)
+	rectfill(x+1, y+1, 7+x, 7+y, colors[2])
+	print(calcScore(2), x+11, y+1, 0)
+	print(msg, x-11, y+16, 0)
+end
+
+function makeMove(x, y)
+	--msg = tostring(x).." "..tostring(y)
+	
+	if isSuitable(x,y) then
+		board[x][y] = turn
+		
+		flipTiles(x, y)
+		
+		turn += 1
+		if turn == 3 then
+			turn = 1
+		end
+	end
+end
+
+function isSuitable(x, y)
+	o = 1
+	if turn == 1 then
+		o = 2
+	end
+	
+	flips = 0
+	
+	if inBounds(x, y) and board[x][y]==0 then
+		flips = flipTilesPretend(x, y)
+	end
+	return flips>0
+end
+
+function flipTiles(x, y)
+	o = 1
+	if turn == 1 then
+		o = 2
+	end
+	
+	for dx=-1,1,1 do
+		for dy=-1,1,1 do
+			if not (dx==0 and dy==0) then
+				lx = x+dx
+				ly = y+dy
+				while inBounds(lx, ly) and board[lx][ly]==o do
+					lx+=dx
+					ly+=dy
+				end
+				if inBounds(lx, ly) and board[lx][ly]==turn then
+					while lx!=x or ly!=y do
+						lx-=dx
+						ly-=dy
+						board[lx][ly] = turn
+					end
+				end
+			end
+		end
+	end
+end
+
+function flipTilesPretend(x, y)
+	o = 1
+	if turn == 1 then
+		o = 2
+	end
+	
+	flips = 0
+	
+	for dx=-1,1,1 do
+		for dy=-1,1,1 do
+			if not (dx==0 and dy==0) then
+				lx = x+dx
+				ly = y+dy
+				while inBounds(lx, ly) and board[lx][ly]==o do
+					lx+=dx
+					ly+=dy
+				end
+				if inBounds(lx, ly) and board[lx][ly]==turn then
+					while lx!=x or ly!=y do
+						lx-=dx
+						ly-=dy
+						flips+=1
+					end
+					flips-=1
+				end
+			end
+		end
+	end
+	return flips
+end
+
+function movesAvailable()
+	i=0
+	for x=1,8,1 do
+		for y=1,8,1 do
+			if isSuitable(x, y) then
+				i+=1
+			end
+		end
+	end
+	return i>0
+end
+
+function calcScore(p)
+	score=0
+	for x=1,8,1 do
+		for y=1,8,1 do
+			if board[x][y]==p then score+=1 end
+		end
+	end
+	return score
+end
+
+function rndInt(a, b)
+	return flr(a + rnd()*b)
+end
+
+function inTable(tbl, item)
+    for key, value in pairs(tbl) do
+        if value == item then return key end
+    end
+    return false
+end
+
+function inBounds(x, y)
+	return x>0 and y>0 and x<9 and y<9
+end
+:: main.lua
+--[[pod_format="raw",created="2025-07-30 12:41:04",modified="2025-10-29 15:59:23",revision=161,xstickers={}]]
+--[[
+Reversi Game Implementation
+(c)2025 Filip Jamroga
+]]--
+
+include("lib.lua")
+include("ai.lua")
+
+function _init()
+	menuitem {
+		id = 2,
+		label = "New Game (Clever AI)",
+		shortcut = "CTRL-N",
+		action = function()
+			create_process("main.lua", {ai_mode = "super_smart"})
+			exit()
+		end
+	}
+	
+	menuitem {
+		id = 3,
+		label = "New Game (Smart AI)",
+		shortcut = "CTRL-J",
+		action = function()
+			create_process("main.lua", {ai_mode = "smart"})
+			exit()
+		end
+	}
+	
+	menuitem {
+		id = 4,
+		label = "New Game (Dumb AI)",
+		shortcut = "CTRL-K",
+		action = function()
+			create_process("main.lua", {ai_mode = "dumb"})
+			exit()
+		end
+	}
+	
+	menuitem {
+		id = 5,
+		label = "New Game (No AI)",
+		shortcut = "CTRL-L",
+		action = function()
+			create_process("main.lua", {ai_mode = "none"})
+			exit()
+		end
+	}
+	
+	if env().ai_mode==nil then
+		ai_mode = "super_smart"
+	else
+		ai_mode = env().ai_mode
+	end
+	
+	initGame()
+	
+	in_delay = 20
+	
+	game_over = false
+	
+	window(200, 147, {title = "Reversi", resizeable = false})
+end
+
+function _update()
+	mx,my,mb=mouse()
+	if mb>0 and not (in_delay>0) and not game_over then
+		in_delay = 20
+		x = flr((mx-2)/18+1)
+		y = flr((my-2)/18+1)
+		if turn==1 or ai_mode=="none" then 
+			makeMove(x, y)
+		else
+			if ai_mode=="smart" then
+				maximizeScoreAIMove()
+			elseif ai_mode=="dumb" then
+				dumbAIMove()
+			elseif ai_mode=="super_smart" then
+				maximizeScoreWithEdgePriorityAIMove()
+			end
+		end
+		if not movesAvailable() then
+			game_over = true
+		end
+	end
+end
+
+function _draw()
+	cls(7)
+	rectfill(1, 1, 145, 145, 1)
+	for x=1,8,1 do
+		for y=1,8,1 do
+			drawCell(x, y, 16, 2, board[x][y])
+		end
+	end
+	if game_over then
+		if calcScore(1)>calcScore(2) then
+			msg = "Black wins!"
+		else
+			msg = "White wins!"
+		end
+	end
+	drawMove(147, 2)
+	in_delay -= 1
+end
+:: map/
+:: map/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE5IDEzOjMyOjM1Iixtb2RpZmllZD0iMjAyNS0x
+MC0yOSAxNTo1OToyNCJdXQ==
+:: map/0.map
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTAxLTE3IDEwOjM1OjQ4Iixtb2RpZmllZD0iMjAyNS0w
+Ny0zMCAxMjo0ODo0MCIscmV2aXNpb249Ml1dbHo0AGgAAABYEAAA8Ah7e2JtcD11c2VyZGF0YSgi
+aTE2IiwzMgMALyIwAQD--------------------78QgiKSxoaWRkZW49ZmFsc2UscGFuX3g9MAgA
+0nk9MCx0aWxlX2g9MTYKABB3CgCAem9vbT0xfX0=
+:: sfx/
+:: sfx/.info.pod
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTA3LTE5IDEzOjMyOjM1Iixtb2RpZmllZD0iMjAyNS0x
+MC0yOSAxNTo1OToyNCJdXQ==
+:: sfx/0.sfx
+b64$LS1bW3BvZCxjcmVhdGVkPSIyMDI1LTAxLTE3IDEwOjM1OjQ5Iixtb2RpZmllZD0iMjAyNS0w
+MS0xNyAxMDozNzo0NCIscmV2aXNpb249Ml1dbHo0AKAAAAALCgAA-zBweHUAAygAAAQABA9AEAIO
+AAGgASACoA4ADxAADfDKAQIDQA8PkAQFBgdADJAICQoLQAyQDwwPDQ8ODEAM8P8BAOv-J6oBEAYP
+IBABIAEgAfAAAhACDhABIA8hIAEwD0Dwww8oD--wxg-4Cg--D4AP9w8NAfAJARAGDjAA------_9
+H-8BAKzPyA9AAA8QQP--sPD-AQD-6lD-----KQ==
+:: [eoc]
